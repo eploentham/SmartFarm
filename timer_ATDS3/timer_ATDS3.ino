@@ -64,6 +64,7 @@ lv_obj_t *lastUpdateLabel;
 int count = 0;
 
 // WiFi credentials
+// ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
 const char* ssid = "TP-Link_3800";
 const char* password = "46284143";
 //const char* ssid = "Xiaomi 13";
@@ -244,6 +245,12 @@ void setup() {
   Display.begin();
   Display.useLVGL();
   Switch.begin();
+  // Set background color to orange when WiFi is connected
+  lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 165, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lastUpdateLabel = lv_label_create(lv_scr_act());
+  lv_label_set_text(lastUpdateLabel, "connect wifi");
+  lv_obj_align(lastUpdateLabel, LV_ALIGN_BOTTOM_LEFT, 10, 0);
+  lv_obj_set_style_text_color(lastUpdateLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
 
   // Setup valve pins as outputs
   pinMode(VALVE1_PIN, OUTPUT);  pinMode(VALVE2_PIN, OUTPUT);  pinMode(VALVE3_PIN, OUTPUT);  pinMode(VALVE4_PIN, OUTPUT);
@@ -259,13 +266,10 @@ void setup() {
     delay(500);
     Serial.print("+");
   }
-  
+  lv_label_set_text(lastUpdateLabel, "2025-03-31");
   Serial.println("\nConnected to WiFi");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
-
-  // Set background color to orange when WiFi is connected
-  lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 165, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
 
   // Configure time
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -316,10 +320,6 @@ void setup() {
   lv_label_set_text(valve8Label, "Valve8 Control");
   lv_obj_align(valve8Label, LV_ALIGN_TOP_RIGHT, 0, 90);  // เลื่อนลง 20 pixels
 
-  lastUpdateLabel = lv_label_create(lv_scr_act());
-  lv_label_set_text(lastUpdateLabel, "Valve8 Control");
-  lv_obj_align(lastUpdateLabel, LV_ALIGN_BOTTOM_LEFT, 10, 0);
-  lv_obj_set_style_text_color(lastUpdateLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
   // Button handlers
   Switch.onPressed(A, []() {
     //Serial.println("Switch.onPressed A");
@@ -354,7 +354,6 @@ void setup() {
   server.on("/api/valve", HTTP_POST, handleControlValve);
   server.begin();
   setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
-  lv_label_set_text(lastUpdateLabel, "2025-03-31");
 }
 
 void loop() {
