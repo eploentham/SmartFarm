@@ -59,14 +59,15 @@ lv_obj_t *valve7Label;
 lv_obj_t *valve8Label;
 lv_obj_t *timeLabel;  // Label สำหรับแสดงเวลา
 lv_obj_t *ipLabel;  // เพิ่ม label สำหรับแสดง IP
+lv_obj_t *lastUpdateLabel;
 
 int count = 0;
 
 // WiFi credentials
-//const char* ssid = "TP-Link_3800";
-//const char* password = "46284143";
-const char* ssid = "Xiaomi 13";
-const char* password = "11111111";
+const char* ssid = "TP-Link_3800";
+const char* password = "46284143";
+//const char* ssid = "Xiaomi 13";
+//const char* password = "11111111";
 // API Handlers
 void handleGetStatus(AsyncWebServerRequest *request) {
   // Print request details
@@ -315,6 +316,10 @@ void setup() {
   lv_label_set_text(valve8Label, "Valve8 Control");
   lv_obj_align(valve8Label, LV_ALIGN_TOP_RIGHT, 0, 90);  // เลื่อนลง 20 pixels
 
+  lastUpdateLabel = lv_label_create(lv_scr_act());
+  lv_label_set_text(lastUpdateLabel, "Valve8 Control");
+  lv_obj_align(lastUpdateLabel, LV_ALIGN_BOTTOM_LEFT, 10, 0);
+  lv_obj_set_style_text_color(lastUpdateLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
   // Button handlers
   Switch.onPressed(A, []() {
     //Serial.println("Switch.onPressed A");
@@ -349,6 +354,7 @@ void setup() {
   server.on("/api/valve", HTTP_POST, handleControlValve);
   server.begin();
   setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
+  lv_label_set_text(lastUpdateLabel, "2025-03-31");
 }
 
 void loop() {
