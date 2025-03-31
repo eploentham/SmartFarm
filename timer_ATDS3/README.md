@@ -32,15 +32,33 @@ This project implements a timer-based irrigation control system using an ESP32-S
 
 ## Dependencies
 
-- LVGL library
-- ATD1.47-S3 library
-- ESPAsyncWebServer
-- ArduinoJson
+Required libraries (install via Arduino Library Manager or GitHub):
+
+1. LVGL (https://github.com/lvgl/lvgl)
+2. ATD1.47-S3 (from Arduino Library Manager)
+3. ESPAsyncWebServer (https://github.com/me-no-dev/ESPAsyncWebServer)
+4. AsyncTCP (https://github.com/me-no-dev/AsyncTCP) - Required for ESPAsyncWebServer
+5. ArduinoJson (https://github.com/bblanchon/ArduinoJson)
 
 ## Setup
 
-1. Install the required libraries in Arduino IDE
-2. Configure WiFi credentials in the code
+1. Install the required libraries in Arduino IDE:
+   - Open Arduino IDE
+   - Go to Tools > Manage Libraries
+   - Search for and install:
+     - LVGL
+     - ATD1.47-S3
+     - ArduinoJson
+   - Install ESPAsyncWebServer and AsyncTCP from GitHub:
+     - Download the libraries from their respective GitHub repositories
+     - Extract them to your Arduino libraries folder (usually Documents/Arduino/libraries)
+
+2. Configure WiFi credentials in the code:
+   ```cpp
+   const char* ssid = "YOUR_WIFI_SSID";
+   const char* password = "YOUR_WIFI_PASSWORD";
+   ```
+
 3. Upload the sketch to your ESP32-S3
 4. Access the web interface using the IP address shown on the display
 

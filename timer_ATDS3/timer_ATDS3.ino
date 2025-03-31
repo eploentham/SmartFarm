@@ -46,7 +46,7 @@ const long gmtOffset_sec = 7 * 3600;  // GMT+7
 const int daylightOffset_sec = 0;
 struct tm timeinfo;
 bool valveOpenedToday = false;
-
+String VALVE1NAME="",VALVE2NAME="",VALVE3NAME="",VALVE4NAME="",VALVE5NAME="",VALVE6NAME="",VALVE7NAME="",VALVE8NAME="";
 // Web server
 AsyncWebServer server(80);
 lv_obj_t *valve1Label;
@@ -62,8 +62,10 @@ lv_obj_t *ipLabel;  // เพิ่ม label สำหรับแสดง IP
 int count = 0;
 
 // WiFi credentials
-const char* ssid = "TP-Link_3800";
-const char* password = "46284143";
+//const char* ssid = "TP-Link_3800";
+//const char* password = "46284143";
+const char* ssid = "Xiaomi 13";
+const char* password = "11111111";
 // API Handlers
 void handleGetStatus(AsyncWebServerRequest *request) {
   // Print request details
@@ -160,105 +162,51 @@ void updateTimeDisplay() {
 void openValve(int valvePin) {
   Serial.println("openValve "+String(valvePin));
   //setValveRunning(valvePin, true);
-  if(valvePin==VALVE1_PIN){
-    digitalWrite(VALVE1_PIN, HIGH);
-    VALVE1RUNNING = true;
-  }else if(valvePin==VALVE2_PIN){
-    digitalWrite(VALVE2_PIN, HIGH);
-    VALVE2RUNNING = true;
-  }else if(valvePin==VALVE3_PIN){
-    digitalWrite(VALVE3_PIN, HIGH);
-    VALVE3RUNNING = true;
-  }else if(valvePin==VALVE4_PIN){
-    digitalWrite(VALVE4_PIN, HIGH);
-    VALVE4RUNNING = true;
-  }else if(valvePin==VALVE5_PIN){
-    digitalWrite(VALVE5_PIN, HIGH);
-    VALVE5RUNNING = true;
-  }else if(valvePin==VALVE6_PIN){
-    digitalWrite(VALVE6_PIN, HIGH);
-    VALVE6RUNNING = true;
-  }else if(valvePin==VALVE7_PIN){
-    digitalWrite(VALVE7_PIN, HIGH);
-    VALVE7RUNNING = true;
-  }else if(valvePin==VALVE8_PIN){
-    digitalWrite(VALVE8_PIN, HIGH);
-    VALVE8RUNNING = true;
+  if(valvePin==VALVE1_PIN){    digitalWrite(VALVE1_PIN, HIGH);    VALVE1RUNNING = true;
+  }else if(valvePin==VALVE2_PIN){    digitalWrite(VALVE2_PIN, HIGH);    VALVE2RUNNING = true;
+  }else if(valvePin==VALVE3_PIN){    digitalWrite(VALVE3_PIN, HIGH);    VALVE3RUNNING = true;
+  }else if(valvePin==VALVE4_PIN){    digitalWrite(VALVE4_PIN, HIGH);    VALVE4RUNNING = true;
+  }else if(valvePin==VALVE5_PIN){    digitalWrite(VALVE5_PIN, HIGH);    VALVE5RUNNING = true;
+  }else if(valvePin==VALVE6_PIN){    digitalWrite(VALVE6_PIN, HIGH);    VALVE6RUNNING = true;
+  }else if(valvePin==VALVE7_PIN){    digitalWrite(VALVE7_PIN, HIGH);    VALVE7RUNNING = true;
+  }else if(valvePin==VALVE8_PIN){    digitalWrite(VALVE8_PIN, HIGH);    VALVE8RUNNING = true;
   }
   setLabel();
 }
 void closeValve(int valvePin) {
   Serial.println("closeValve "+String(valvePin));
   //setValveRunning(valvePin, false);
-  if(valvePin==VALVE1_PIN){
-    digitalWrite(VALVE1_PIN, LOW);
-    VALVE1RUNNING = false;
-  }else if(valvePin==VALVE2_PIN){
-    digitalWrite(VALVE2_PIN, LOW);
-    VALVE2RUNNING = false;
-  }else if(valvePin==VALVE3_PIN){
-    digitalWrite(VALVE3_PIN, LOW);
-    VALVE3RUNNING = false;
-  }else if(valvePin==VALVE4_PIN){
-    digitalWrite(VALVE4_PIN, LOW);
-    VALVE4RUNNING = false;
-  }else if(valvePin==VALVE5_PIN){
-    digitalWrite(VALVE5_PIN, LOW);
-    VALVE5RUNNING = false;
-  }else if(valvePin==VALVE6_PIN){
-    digitalWrite(VALVE6_PIN, LOW);
-    VALVE6RUNNING = false;
-  }else if(valvePin==VALVE7_PIN){
-    digitalWrite(VALVE7_PIN, LOW);
-    VALVE7RUNNING = false;
-  }else if(valvePin==VALVE8_PIN){
-    digitalWrite(VALVE8_PIN, LOW);
-    VALVE8RUNNING = false;
+  if(valvePin==VALVE1_PIN){    digitalWrite(VALVE1_PIN, LOW);    VALVE1RUNNING = false;
+  }else if(valvePin==VALVE2_PIN){    digitalWrite(VALVE2_PIN, LOW);    VALVE2RUNNING = false;
+  }else if(valvePin==VALVE3_PIN){    digitalWrite(VALVE3_PIN, LOW);    VALVE3RUNNING = false;
+  }else if(valvePin==VALVE4_PIN){    digitalWrite(VALVE4_PIN, LOW);    VALVE4RUNNING = false;
+  }else if(valvePin==VALVE5_PIN){    digitalWrite(VALVE5_PIN, LOW);    VALVE5RUNNING = false;
+  }else if(valvePin==VALVE6_PIN){    digitalWrite(VALVE6_PIN, LOW);    VALVE6RUNNING = false;
+  }else if(valvePin==VALVE7_PIN){    digitalWrite(VALVE7_PIN, LOW);    VALVE7RUNNING = false;
+  }else if(valvePin==VALVE8_PIN){    digitalWrite(VALVE8_PIN, LOW);    VALVE8RUNNING = false;
   }
   setLabel();
 }
 void setLabel(){
   //ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน
-  if(VALVE1RUNNING){
-    lv_label_set_text(valve1Label, "Valve 1  ON");
-  }else{
-    lv_label_set_text(valve1Label, "Valve 1 OFF");
-  }
-  if(VALVE2RUNNING){
-    lv_label_set_text(valve2Label, "Valve 2  ON");
-  }else{
-    lv_label_set_text(valve2Label, "Valve 2 OFF");
-  }
-  if(VALVE3RUNNING){
-    lv_label_set_text(valve3Label, "Valve 3  ON");
-  }else{
-    lv_label_set_text(valve3Label, "Valve 3 OFF");
-  }
-  if(VALVE4RUNNING){
-    lv_label_set_text(valve4Label, "Valve 4  ON");
-  }else{
-    lv_label_set_text(valve4Label, "Valve 4 OFF");
-  }
-  if(VALVE5RUNNING){
-    lv_label_set_text(valve5Label, "Valve 5  ON");
-  }else{
-    lv_label_set_text(valve5Label, "Valve 5 OFF");
-  }
-  if(VALVE6RUNNING){
-    lv_label_set_text(valve6Label, "Valve 6  ON");
-  }else{
-    lv_label_set_text(valve6Label, "Valve 6 OFF");
-  }
-  if(VALVE7RUNNING){
-    lv_label_set_text(valve7Label, "Valve 7  ON");
-  }else{
-    lv_label_set_text(valve7Label, "Valve 7 OFF");
-  }
-  if(VALVE8RUNNING){
-    lv_label_set_text(valve8Label, "Valve 8  ON");
-  }else{
-    lv_label_set_text(valve8Label, "Valve 8 OFF");
-  }
+  if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
+  if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
+  if(VALVE3RUNNING){    lv_label_set_text(valve3Label, (VALVE3NAME+"  ON").c_str());  }else{    lv_label_set_text(valve3Label, (VALVE3NAME+" OFF").c_str());  }
+  if(VALVE4RUNNING){    lv_label_set_text(valve4Label, (VALVE4NAME+"  ON").c_str());  }else{    lv_label_set_text(valve4Label, (VALVE4NAME+" OFF").c_str());  }
+  if(VALVE5RUNNING){    lv_label_set_text(valve5Label, (VALVE5NAME+"  ON").c_str());  }else{    lv_label_set_text(valve5Label, (VALVE5NAME+" OFF").c_str());  }
+  if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
+  if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
+  if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
+}
+void setValveName(String valve,String name){
+  if(valve=="1"){VALVE1NAME=name;}
+  else if(valve=="2"){VALVE2NAME=name;}
+  else if(valve=="3"){VALVE3NAME=name;}
+  else if(valve=="4"){VALVE4NAME=name;}
+  else if(valve=="5"){VALVE5NAME=name;}
+  else if(valve=="6"){VALVE6NAME=name;}
+  else if(valve=="7"){VALVE7NAME=name;}
+  else if(valve=="8"){VALVE8NAME=name;}
 }
 void setup() {
   // put your setup code here, to run once:
@@ -268,22 +216,10 @@ void setup() {
   Switch.begin();
 
   // Setup valve pins as outputs
-  pinMode(VALVE1_PIN, OUTPUT);
-  pinMode(VALVE2_PIN, OUTPUT);
-  pinMode(VALVE3_PIN, OUTPUT);
-  pinMode(VALVE4_PIN, OUTPUT);
-  pinMode(VALVE5_PIN, OUTPUT);
-  pinMode(VALVE6_PIN, OUTPUT);
-  pinMode(VALVE7_PIN, OUTPUT);
-  pinMode(VALVE8_PIN, OUTPUT);
-  digitalWrite(VALVE1_PIN, LOW);
-  digitalWrite(VALVE2_PIN, LOW);
-  digitalWrite(VALVE3_PIN, LOW);
-  digitalWrite(VALVE4_PIN, LOW);
-  digitalWrite(VALVE5_PIN, LOW);
-  digitalWrite(VALVE6_PIN, LOW);
-  digitalWrite(VALVE7_PIN, LOW);
-  digitalWrite(VALVE8_PIN, LOW);
+  pinMode(VALVE1_PIN, OUTPUT);  pinMode(VALVE2_PIN, OUTPUT);  pinMode(VALVE3_PIN, OUTPUT);  pinMode(VALVE4_PIN, OUTPUT);
+  pinMode(VALVE5_PIN, OUTPUT);  pinMode(VALVE6_PIN, OUTPUT);  pinMode(VALVE7_PIN, OUTPUT);  pinMode(VALVE8_PIN, OUTPUT);
+  digitalWrite(VALVE1_PIN, LOW);  digitalWrite(VALVE2_PIN, LOW);  digitalWrite(VALVE3_PIN, LOW);  digitalWrite(VALVE4_PIN, LOW);
+  digitalWrite(VALVE5_PIN, LOW);  digitalWrite(VALVE6_PIN, LOW);  digitalWrite(VALVE7_PIN, LOW);  digitalWrite(VALVE8_PIN, LOW);
 
   // Connect to WiFi
   WiFi.begin(ssid, password);
@@ -383,6 +319,7 @@ void setup() {
   server.on("/api/status", HTTP_GET, handleGetStatus);
   server.on("/api/valve", HTTP_POST, handleControlValve);
   server.begin();
+  setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
 }
 
 void loop() {
