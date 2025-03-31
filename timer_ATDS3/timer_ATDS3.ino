@@ -1,6 +1,6 @@
 #include <Arduino.h>
-#include <lvgl.h> // เรียกใช้ LVGL
-#include <ATD1.47-S3.h> // เรียกใช้ ATD1.47-S3 Lib
+#include <lvgl.h>
+#include <ATD1.47-S3.h>
 #include <WiFi.h>
 #include <time.h>
 #include <ESPAsyncWebServer.h>
@@ -24,14 +24,14 @@ unsigned long valve5StartTime = 0;
 unsigned long valve6StartTime = 0;
 unsigned long valve7StartTime = 0;
 unsigned long valve8StartTime = 0;
-unsigned long valve1Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve2Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve3Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve4Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve5Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve6Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve7Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
-unsigned long valve8Duration = 5000;  // ระยะเวลาเปิดวาล์ว 5 วินาที
+unsigned long valve1Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve2Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve3Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve4Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve5Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve6Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve7Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
+unsigned long valve8Duration = 600000;  // ระยะเวลาเปิดวาล์ว 10 นาที
 bool VALVE1RUNNING = false;
 bool VALVE2RUNNING = false;
 bool VALVE3RUNNING = false;
@@ -59,6 +59,7 @@ lv_obj_t *valve7Label;
 lv_obj_t *valve8Label;
 lv_obj_t *timeLabel;  // Label สำหรับแสดงเวลา
 lv_obj_t *ipLabel;  // เพิ่ม label สำหรับแสดง IP
+
 int count = 0;
 
 // WiFi credentials
@@ -98,7 +99,7 @@ void handleControlValve(AsyncWebServerRequest *request) {
   // Print all parameters
   Serial.println("Parameters received:");
   int valve = 0;
-  String action = "", chkparamvalve = "", chkparamaction = "";
+  String action = "", chkparamvalve = "", chkparamaction = "", chkparamvalvenum = "", chkparamvalvename = "",valvename="",valvenum="";
   for(int i = 0; i < request->params(); i++) {
     const AsyncWebParameter* param = request->getParam(i);  // Changed to const pointer
     bool valveaction = false; // Changed to const pointer
@@ -114,7 +115,14 @@ void handleControlValve(AsyncWebServerRequest *request) {
       valveaction = action == "on" ? true : false;
       chkparamaction = "OK";
     }
-    //startValveTimer(valve, valve1Duration, valveaction, valve1StartTime);
+    if(param->name() == "valvenum"){
+      valvenum = param->value();
+      chkparamvalvenum = "OK";
+    }
+    if(param->name() == "valvename"){
+      valvename = param->value();
+      chkparamvalvename = "OK";
+    }
   }
   if (chkparamvalve == "OK" && chkparamaction == "OK") {
     // Print parameters
@@ -145,6 +153,16 @@ void handleControlValve(AsyncWebServerRequest *request) {
       Serial.println("Valve 8 turned "+String(VALVE8RUNNING));
     }
     request->send(200, "text/plain", "OK");
+  }else if (chkparamvalve == "OK" && chkparamaction == "OK"){
+    if(valvenum == "1"){      setValveName("1", valvename);
+    }else if(valvenum == "2"){      setValveName("2", valvename);
+    }else if(valvenum == "3"){      setValveName("3", valvename);
+    }else if(valvenum == "4"){      setValveName("4", valvename);
+    }else if(valvenum == "5"){      setValveName("5", valvename);
+    }else if(valvenum == "6"){      setValveName("6", valvename);
+    }else if(valvenum == "7"){      setValveName("7", valvename);
+    }else if(valvenum == "8"){      setValveName("8", valvename);
+    }
   } else {
     Serial.println("Missing parameters");
     request->send(400, "text/plain", "Missing parameters");
@@ -187,16 +205,16 @@ void closeValve(int valvePin) {
   }
   setLabel();
 }
-void setLabel(){
-  //ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน
-  if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
-  if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
-  if(VALVE3RUNNING){    lv_label_set_text(valve3Label, (VALVE3NAME+"  ON").c_str());  }else{    lv_label_set_text(valve3Label, (VALVE3NAME+" OFF").c_str());  }
-  if(VALVE4RUNNING){    lv_label_set_text(valve4Label, (VALVE4NAME+"  ON").c_str());  }else{    lv_label_set_text(valve4Label, (VALVE4NAME+" OFF").c_str());  }
-  if(VALVE5RUNNING){    lv_label_set_text(valve5Label, (VALVE5NAME+"  ON").c_str());  }else{    lv_label_set_text(valve5Label, (VALVE5NAME+" OFF").c_str());  }
-  if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
-  if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
-  if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
+void setLabel(){  
+  //ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน  
+  if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON "+String(valve1Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
+  if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON "+String(valve2Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
+  if(VALVE3RUNNING){    lv_label_set_text(valve3Label, (VALVE3NAME+"  ON "+String(valve3Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve3Label, (VALVE3NAME+" OFF").c_str());  }
+  if(VALVE4RUNNING){    lv_label_set_text(valve4Label, (VALVE4NAME+"  ON "+String(valve4Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve4Label, (VALVE4NAME+" OFF").c_str());  }
+  if(VALVE5RUNNING){    lv_label_set_text(valve5Label, (VALVE5NAME+"  ON "+String(valve5Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve5Label, (VALVE5NAME+" OFF").c_str());  }
+  if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON "+String(valve6Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
+  if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON "+String(valve7Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
+  if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON "+String(valve8Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
 }
 void setValveName(String valve,String name){
   if(valve=="1"){VALVE1NAME=name;}
@@ -208,6 +226,17 @@ void setValveName(String valve,String name){
   else if(valve=="7"){VALVE7NAME=name;}
   else if(valve=="8"){VALVE8NAME=name;}
 }
+void setValveDuration(String valve,String duration){
+  if(valve=="1"){valve1Duration=duration.toInt();}
+  else if(valve=="2"){valve2Duration=duration.toInt();}
+  else if(valve=="3"){valve3Duration=duration.toInt();}
+  else if(valve=="4"){valve4Duration=duration.toInt();}
+  else if(valve=="5"){valve5Duration=duration.toInt();}
+  else if(valve=="6"){valve6Duration=duration.toInt();}
+  else if(valve=="7"){valve7Duration=duration.toInt();}
+  else if(valve=="8"){valve8Duration=duration.toInt();}
+}
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
