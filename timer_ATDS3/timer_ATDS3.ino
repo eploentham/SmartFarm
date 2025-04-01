@@ -16,7 +16,7 @@ const int VALVE6_PIN = 41;  // เปลี่ยนเป็น PIN ที่�
 const int VALVE7_PIN = 40;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 const int VALVE8_PIN = 39;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 // Timer variables
-unsigned long Duration = 600000;
+unsigned long Duration = 600000;		//ระยะเวลาในการเปิดวาล์ว 10 นาที
 unsigned long valve1StartTime = 0;
 unsigned long valve2StartTime = 0;
 unsigned long valve3StartTime = 0;
@@ -95,10 +95,10 @@ int count = 0;
 
 // WiFi credentials
 // ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
-//const char* ssid = "TP-Link_3800";
-//const char* password = "46284143";
-const char* ssid = "Xiaomi 13";
-const char* password = "11111111";
+const char* ssid = "TP-Link_3800";
+const char* password = "46284143";
+//const char* ssid = "Xiaomi 13";
+//const char* password = "11111111";
 // API Handlers
 void handleGetStatus(AsyncWebServerRequest *request) {
   // Print request details
@@ -213,79 +213,79 @@ void openValve(int valvePin) {
   Serial.println("openValve "+String(valvePin));
   //setValveRunning(valvePin, true);
   if(valvePin==VALVE1_PIN){    setValveTimerStart(VALVE1_PIN, Duration);
-  }else if(valvePin==VALVE2_PIN){    setValveTimerStart(VALVE2_PIN, valve2Duration);
-  }else if(valvePin==VALVE3_PIN){    setValveTimerStart(VALVE3_PIN, valve3Duration);
-  }else if(valvePin==VALVE4_PIN){    setValveTimerStart(VALVE4_PIN, valve4Duration);
-  }else if(valvePin==VALVE5_PIN){    setValveTimerStart(VALVE5_PIN, valve5Duration);
-  }else if(valvePin==VALVE6_PIN){    setValveTimerStart(VALVE6_PIN, valve6Duration);
-  }else if(valvePin==VALVE7_PIN){    setValveTimerStart(VALVE7_PIN, valve7Duration);
-  }else if(valvePin==VALVE8_PIN){    setValveTimerStart(VALVE8_PIN, valve8Duration);
+  }else if(valvePin==VALVE2_PIN){    setValveTimerStart(VALVE2_PIN, Duration);
+  }else if(valvePin==VALVE3_PIN){    setValveTimerStart(VALVE3_PIN, Duration);
+  }else if(valvePin==VALVE4_PIN){    setValveTimerStart(VALVE4_PIN, Duration);
+  }else if(valvePin==VALVE5_PIN){    setValveTimerStart(VALVE5_PIN, Duration);
+  }else if(valvePin==VALVE6_PIN){    setValveTimerStart(VALVE6_PIN, Duration);
+  }else if(valvePin==VALVE7_PIN){    setValveTimerStart(VALVE7_PIN, Duration);
+  }else if(valvePin==VALVE8_PIN){    setValveTimerStart(VALVE8_PIN, Duration);
   }
   setLabel();
 }
 void closeValve(int valvePin) {
-  Serial.println("closeValve "+String(valvePin));
-  //setValveRunning(valvePin, false);
-  if(valvePin==VALVE1_PIN){    digitalWrite(VALVE1_PIN, LOW);    VALVE1RUNNING = false;VALVES[0].isRunning = false;
-  }else if(valvePin==VALVE2_PIN){    digitalWrite(VALVE2_PIN, LOW);    VALVE2RUNNING = false;VALVES[1].isRunning = false;
-  }else if(valvePin==VALVE3_PIN){    digitalWrite(VALVE3_PIN, LOW);    VALVE3RUNNING = false;VALVES[2].isRunning = false;
-  }else if(valvePin==VALVE4_PIN){    digitalWrite(VALVE4_PIN, LOW);    VALVE4RUNNING = false;VALVES[3].isRunning = false;
-  }else if(valvePin==VALVE5_PIN){    digitalWrite(VALVE5_PIN, LOW);    VALVE5RUNNING = false;VALVES[4].isRunning = false;
-  }else if(valvePin==VALVE6_PIN){    digitalWrite(VALVE6_PIN, LOW);    VALVE6RUNNING = false;VALVES[5].isRunning = false;
-  }else if(valvePin==VALVE7_PIN){    digitalWrite(VALVE7_PIN, LOW);    VALVE7RUNNING = false;VALVES[6].isRunning = false;
-  }else if(valvePin==VALVE8_PIN){    digitalWrite(VALVE8_PIN, LOW);    VALVE8RUNNING = false;VALVES[7].isRunning = false;
-  }
-  setLabel();
+	Serial.println("closeValve "+String(valvePin));
+	//setValveRunning(valvePin, false);
+	if(valvePin==VALVE1_PIN){    digitalWrite(VALVE1_PIN, LOW);    VALVE1RUNNING = false;VALVES[0].isRunning = false;
+	}else if(valvePin==VALVE2_PIN){    digitalWrite(VALVE2_PIN, LOW);    VALVE2RUNNING = false;VALVES[1].isRunning = false;
+	}else if(valvePin==VALVE3_PIN){    digitalWrite(VALVE3_PIN, LOW);    VALVE3RUNNING = false;VALVES[2].isRunning = false;
+	}else if(valvePin==VALVE4_PIN){    digitalWrite(VALVE4_PIN, LOW);    VALVE4RUNNING = false;VALVES[3].isRunning = false;
+	}else if(valvePin==VALVE5_PIN){    digitalWrite(VALVE5_PIN, LOW);    VALVE5RUNNING = false;VALVES[4].isRunning = false;
+	}else if(valvePin==VALVE6_PIN){    digitalWrite(VALVE6_PIN, LOW);    VALVE6RUNNING = false;VALVES[5].isRunning = false;
+	}else if(valvePin==VALVE7_PIN){    digitalWrite(VALVE7_PIN, LOW);    VALVE7RUNNING = false;VALVES[6].isRunning = false;
+	}else if(valvePin==VALVE8_PIN){    digitalWrite(VALVE8_PIN, LOW);    VALVE8RUNNING = false;VALVES[7].isRunning = false;
+	}
+	setLabel();
 }
 void setLabel(){  
-  //ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน  
-  if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON "+String(valve1Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
-  if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON "+String(valve2Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
-  if(VALVE3RUNNING){    lv_label_set_text(valve3Label, (VALVE3NAME+"  ON "+String(valve3Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve3Label, (VALVE3NAME+" OFF").c_str());  }
-  if(VALVE4RUNNING){    lv_label_set_text(valve4Label, (VALVE4NAME+"  ON "+String(valve4Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve4Label, (VALVE4NAME+" OFF").c_str());  }
-  if(VALVE5RUNNING){    lv_label_set_text(valve5Label, (VALVE5NAME+"  ON "+String(valve5Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve5Label, (VALVE5NAME+" OFF").c_str());  }
-  if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON "+String(valve6Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
-  if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON "+String(valve7Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
-  if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON "+String(valve8Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
+	//ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน  
+	if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON "+String(valve1Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
+	if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON "+String(valve2Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
+	if(VALVE3RUNNING){    lv_label_set_text(valve3Label, (VALVE3NAME+"  ON "+String(valve3Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve3Label, (VALVE3NAME+" OFF").c_str());  }
+	if(VALVE4RUNNING){    lv_label_set_text(valve4Label, (VALVE4NAME+"  ON "+String(valve4Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve4Label, (VALVE4NAME+" OFF").c_str());  }
+	if(VALVE5RUNNING){    lv_label_set_text(valve5Label, (VALVE5NAME+"  ON "+String(valve5Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve5Label, (VALVE5NAME+" OFF").c_str());  }
+	if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON "+String(valve6Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
+	if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON "+String(valve7Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
+	if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON "+String(valve8Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
 }
 void setValveName(String valve,String name){
-  if(valve=="1"){VALVE1NAME=name;}
-  else if(valve=="2"){VALVE2NAME=name;}
-  else if(valve=="3"){VALVE3NAME=name;}
-  else if(valve=="4"){VALVE4NAME=name;}
-  else if(valve=="5"){VALVE5NAME=name;}
-  else if(valve=="6"){VALVE6NAME=name;}
-  else if(valve=="7"){VALVE7NAME=name;}
-  else if(valve=="8"){VALVE8NAME=name;}
+	if(valve=="1"){VALVE1NAME=name;}
+	else if(valve=="2"){VALVE2NAME=name;}
+	else if(valve=="3"){VALVE3NAME=name;}
+	else if(valve=="4"){VALVE4NAME=name;}
+	else if(valve=="5"){VALVE5NAME=name;}
+	else if(valve=="6"){VALVE6NAME=name;}
+	else if(valve=="7"){VALVE7NAME=name;}
+	else if(valve=="8"){VALVE8NAME=name;}
 }
 void setValveDuration(String valve,String duration){
-  if(valve=="1"){valve1Duration=duration.toInt();	VALVES[0].duration = valve1Duration;}
-  else if(valve=="2"){valve2Duration=duration.toInt();	VALVES[1].duration = valve2Duration;}
-  else if(valve=="3"){valve3Duration=duration.toInt();	VALVES[2].duration = valve3Duration;}
-  else if(valve=="4"){valve4Duration=duration.toInt();	VALVES[3].duration = valve4Duration;}
-  else if(valve=="5"){valve5Duration=duration.toInt();	VALVES[4].duration = valve5Duration;}
-  else if(valve=="6"){valve6Duration=duration.toInt();	VALVES[5].duration = valve6Duration;}
-  else if(valve=="7"){valve7Duration=duration.toInt();	VALVES[6].duration = valve7Duration;}
-  else if(valve=="8"){valve8Duration=duration.toInt();	VALVES[7].duration = valve8Duration;}
+	if(valve=="1"){valve1Duration=duration.toInt();	VALVES[0].duration = valve1Duration;}
+	else if(valve=="2"){valve2Duration=duration.toInt();	VALVES[1].duration = valve2Duration;}
+	else if(valve=="3"){valve3Duration=duration.toInt();	VALVES[2].duration = valve3Duration;}
+	else if(valve=="4"){valve4Duration=duration.toInt();	VALVES[3].duration = valve4Duration;}
+	else if(valve=="5"){valve5Duration=duration.toInt();	VALVES[4].duration = valve5Duration;}
+	else if(valve=="6"){valve6Duration=duration.toInt();	VALVES[5].duration = valve6Duration;}
+	else if(valve=="7"){valve7Duration=duration.toInt();	VALVES[6].duration = valve7Duration;}
+	else if(valve=="8"){valve8Duration=duration.toInt();	VALVES[7].duration = valve8Duration;}
 }
 void setValveTimerStart(int valvePin,unsigned long duration) {
   Serial.println("setValveTimerStart "+String(valvePin)+" "+String(duration));
   if(valvePin==VALVE1_PIN){
-    valve1StartTime = millis();    valve1Duration = duration;    VALVE1RUNNING = true;    digitalWrite(VALVE1_PIN, HIGH);VALVES[0].isRunning = true;VALVES[0].startTime = millis();VALVES[0].state = RUNNING;
+    valve1StartTime = millis();    valve1Duration = duration;    VALVE1RUNNING = true;    digitalWrite(VALVE1_PIN, HIGH);VALVES[0].isRunning = true;VALVES[0].startTime = millis();VALVES[0].duration = duration;
   }else if(valvePin==VALVE2_PIN){
-    valve2StartTime = millis();    valve2Duration = duration;    VALVE2RUNNING = true;    digitalWrite(VALVE2_PIN, HIGH);VALVES[1].isRunning = true;VALVES[1].startTime = millis();VALVES[1].state = RUNNING;
+    valve2StartTime = millis();    valve2Duration = duration;    VALVE2RUNNING = true;    digitalWrite(VALVE2_PIN, HIGH);VALVES[1].isRunning = true;VALVES[1].startTime = millis();VALVES[1].duration = duration;
   }else if(valvePin==VALVE3_PIN){
-    valve3StartTime = millis();    valve3Duration = duration;    VALVE3RUNNING = true;    digitalWrite(VALVE3_PIN, HIGH);VALVES[2].isRunning = true;VALVES[2].startTime = millis();VALVES[2].state = RUNNING;
+    valve3StartTime = millis();    valve3Duration = duration;    VALVE3RUNNING = true;    digitalWrite(VALVE3_PIN, HIGH);VALVES[2].isRunning = true;VALVES[2].startTime = millis();VALVES[2].duration = duration;
   }else if(valvePin==VALVE4_PIN){
-    valve4StartTime = millis();    valve4Duration = duration;    VALVE4RUNNING = true;    digitalWrite(VALVE4_PIN, HIGH);VALVES[3].isRunning = true;VALVES[3].startTime = millis();VALVES[3].state = RUNNING;
+    valve4StartTime = millis();    valve4Duration = duration;    VALVE4RUNNING = true;    digitalWrite(VALVE4_PIN, HIGH);VALVES[3].isRunning = true;VALVES[3].startTime = millis();VALVES[3].duration = duration;
   }else if(valvePin==VALVE5_PIN){
-    valve5StartTime = millis();    valve5Duration = duration;    VALVE5RUNNING = true;    digitalWrite(VALVE5_PIN, HIGH);VALVES[4].isRunning = true;VALVES[4].startTime = millis();VALVES[4].state = RUNNING;
+    valve5StartTime = millis();    valve5Duration = duration;    VALVE5RUNNING = true;    digitalWrite(VALVE5_PIN, HIGH);VALVES[4].isRunning = true;VALVES[4].startTime = millis();VALVES[4].duration = duration;
   }else if(valvePin==VALVE6_PIN){
-    valve6StartTime = millis();    valve6Duration = duration;    VALVE6RUNNING = true;    digitalWrite(VALVE6_PIN, HIGH);VALVES[5].isRunning = true;VALVES[5].startTime = millis();VALVES[5].state = RUNNING;
+    valve6StartTime = millis();    valve6Duration = duration;    VALVE6RUNNING = true;    digitalWrite(VALVE6_PIN, HIGH);VALVES[5].isRunning = true;VALVES[5].startTime = millis();VALVES[5].duration = duration;
   }else if(valvePin==VALVE7_PIN){
-    valve7StartTime = millis();    valve7Duration = duration;    VALVE7RUNNING = true;    digitalWrite(VALVE7_PIN, HIGH);VALVES[6].isRunning = true;VALVES[6].startTime = millis();VALVES[6].state = RUNNING;
+    valve7StartTime = millis();    valve7Duration = duration;    VALVE7RUNNING = true;    digitalWrite(VALVE7_PIN, HIGH);VALVES[6].isRunning = true;VALVES[6].startTime = millis();VALVES[6].duration = duration;
   }else if(valvePin==VALVE8_PIN){
-    valve8StartTime = millis();    valve8Duration = duration;    VALVE8RUNNING = true;    digitalWrite(VALVE8_PIN, HIGH);VALVES[7].isRunning = true;VALVES[7].startTime = millis();VALVES[7].state = RUNNING;
+    valve8StartTime = millis();    valve8Duration = duration;    VALVE8RUNNING = true;    digitalWrite(VALVE8_PIN, HIGH);VALVES[7].isRunning = true;VALVES[7].startTime = millis();VALVES[7].duration = duration;
   }
 }
 
@@ -352,7 +352,8 @@ void checkValve1Timer() {
 void updateDisplay() {
     for(int i = 0; i < 8; i++) {
         if(VALVES[i].isRunning) {
-            unsigned long remainingTime = VALVES[i].duration - (millis() - VALVES[i].startTime);
+            unsigned long remainingTime = VALVES[i].duration - ((millis()) - VALVES[i].startTime);
+			//Serial.println("updateDisplay "+String(VALVES[i].duration)+" "+String(VALVES[i].startTime)+" "+String(remainingTime));
             int minutes = remainingTime / 60000;
             int seconds = (remainingTime % 60000) / 1000;
             String status = String(VALVES[i].name) + " ON " + String(minutes) + ":" + String(seconds);
@@ -645,7 +646,7 @@ void loop() {
   	openValveSchedule();
 	
 	// Check WiFi connection
-	if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) {
 		Serial.println("WiFi connection lost. Reconnecting...");
 		WiFi.begin(ssid, password);
 		while (WiFi.status() != WL_CONNECTED) {
@@ -655,14 +656,14 @@ void loop() {
 		Serial.println("\nReconnected to WiFi");
 	}
 
-  	// ตรวจสอบเวลาและปิดวาล์ว
-  	checkValve1Timer();
+	// ตรวจสอบเวลาและปิดวาล์ว
+	checkValve1Timer();
 	// ตรวจสอบและควบคุมวาล์ว
 	checkValves();
-  	// อัพเดทสถานะบนจอ
-  	updateDisplay();
-  	//openValve();
-  	//delay(500);
+	// อัพเดทสถานะบนจอ
+	updateDisplay();
+	//openValve();
+	//delay(500);
 }
 
 // ตัวอย่างการตั้งเวลาเปิดวาล์วตามเงื่อนไข
