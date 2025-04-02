@@ -19,7 +19,7 @@ const int VALVE5_PIN = 42;  // เปลี่ยนเป็น PIN ที่�
 const int VALVE6_PIN = 41;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 const int VALVE7_PIN = 40;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 const int VALVE8_PIN = 39;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
-#define DHTPIN 2
+#define DHTPIN 38
 #define DHTTYPE DHT22
 DHTesp dht;
 unsigned long lastReadTime = 0;
@@ -114,10 +114,28 @@ int count = 0;
 
 // WiFi credentials
 // ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
-//const char* ssid = "TP-Link_3800";
-//const char* password = "46284143";
-const char* ssid = "Xiaomi 13";
-const char* password = "11111111";
+const char* ssid = "TP-Link_3800";
+const char* password = "46284143";
+//const char* ssid = "Xiaomi 13";
+//const char* password = "11111111";
+// ตัวอย่างตารางเวลาเปิดวาล์ว
+struct Schedule {
+    int hour;
+    int minute;
+    int valveIndex;
+    unsigned long duration;
+};
+
+Schedule schedules[] = {
+    {8, 0, VALVE1_PIN, valve1Duration},   // วาล์ว 1 เปิด 8:00 30 นาที
+    {12, 0, VALVE2_PIN, valve2Duration},  // วาล์ว 2 เปิด 12:00 45 นาที
+    {18, 0, VALVE3_PIN, valve3Duration},   // วาล์ว 3 เปิด 18:00 1 ชั่วโมง
+	{19, 0, VALVE4_PIN, valve4Duration},   // วาล์ว 4 เปิด 19:00 1 ชั่วโมง
+	{20, 0, VALVE5_PIN, valve5Duration},   // วาล์ว 5 เปิด 20:00 1 ชั่วโมง
+	{21, 0, VALVE6_PIN, valve6Duration},   // วาล์ว 6 เปิด 21:00 1 ชั่วโมง
+	{22, 0, VALVE7_PIN, valve7Duration},   // วาล์ว 7 เปิด 22:00 1 ชั่วโมง
+	{23, 0, VALVE8_PIN, valve8Duration}   // วาล์ว 8 เปิด 23:00 1 ชั่วโมง
+};
 // API Handlers
 void handleGetStatus(AsyncWebServerRequest *request) {
   // Print request details
@@ -266,6 +284,70 @@ void setLabel(){
 	if(VALVE6RUNNING){    lv_label_set_text(valve6Label, (VALVE6NAME+"  ON "+String(valve6Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve6Label, (VALVE6NAME+" OFF").c_str());  }
 	if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON "+String(valve7Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
 	if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON "+String(valve8Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
+}
+// ฟังก์ชันสำหรับบันทึกค่า config ลงไฟล์
+void saveConfig(String saveType = "all") {
+  File configFile = SPIFFS.open("/config.json", "r");
+  StaticJsonDocument<1024> doc;
+  
+  // ถ้ามีไฟล์อยู่แล้ว ให้โหลดค่าที่มีอยู่ก่อน
+  if(configFile) {
+    DeserializationError error = deserializeJson(doc, configFile);
+    configFile.close();
+    if(error) {
+      Serial.println("Failed to parse existing config file");
+    }
+  }
+
+  // เปิดไฟล์ใหม่สำหรับเขียน
+  configFile = SPIFFS.open("/config.json", "w");
+  if(!configFile) {
+    Serial.println("Failed to open config file for writing");
+    return;
+  }
+
+  // บันทึกค่าตามประเภทที่ต้องการ
+  if(saveType == "all" || saveType == "names") {
+    // บันทึกชื่อวาล์ว
+    doc["valve1Name"] = VALVE1NAME;
+    doc["valve2Name"] = VALVE2NAME;
+    doc["valve3Name"] = VALVE3NAME;
+    doc["valve4Name"] = VALVE4NAME;
+    doc["valve5Name"] = VALVE5NAME;
+    doc["valve6Name"] = VALVE6NAME;
+    doc["valve7Name"] = VALVE7NAME;
+    doc["valve8Name"] = VALVE8NAME;
+  }
+
+  if(saveType == "all" || saveType == "durations") {
+    // บันทึกระยะเวลาเปิดวาล์ว
+    doc["valve1Duration"] = valve1Duration;
+    doc["valve2Duration"] = valve2Duration;
+    doc["valve3Duration"] = valve3Duration;
+    doc["valve4Duration"] = valve4Duration;
+    doc["valve5Duration"] = valve5Duration;
+    doc["valve6Duration"] = valve6Duration;
+    doc["valve7Duration"] = valve7Duration;
+    doc["valve8Duration"] = valve8Duration;
+  }
+
+  if(saveType == "all" || saveType == "schedules") {
+    // บันทึกตารางเวลา
+    JsonArray scheduleArray = doc.createNestedArray("schedules");
+    for(int i = 0; i < sizeof(schedules)/sizeof(schedules[0]); i++) {
+      JsonObject schedule = scheduleArray.createNestedObject();
+      schedule["hour"] = schedules[i].hour;
+      schedule["minute"] = schedules[i].minute;
+      schedule["valveIndex"] = schedules[i].valveIndex;
+      schedule["duration"] = schedules[i].duration;
+    }
+  }
+
+  if(serializeJson(doc, configFile) == 0) {
+    Serial.println("Failed to write to config file");
+  }
+  configFile.close();
+  Serial.println("Config saved successfully - " + saveType);
 }
 void setValveName(String valve, String name) {
   if(valve=="1"){VALVE1NAME=name;}
@@ -727,25 +809,6 @@ void checkConditions() {
     }
 }
 
-// ตัวอย่างตารางเวลาเปิดวาล์ว
-struct Schedule {
-    int hour;
-    int minute;
-    int valveIndex;
-    unsigned long duration;
-};
-
-Schedule schedules[] = {
-    {8, 0, VALVE1_PIN, valve1Duration},   // วาล์ว 1 เปิด 8:00 30 นาที
-    {12, 0, VALVE2_PIN, valve2Duration},  // วาล์ว 2 เปิด 12:00 45 นาที
-    {18, 0, VALVE3_PIN, valve3Duration},   // วาล์ว 3 เปิด 18:00 1 ชั่วโมง
-	{19, 0, VALVE4_PIN, valve4Duration},   // วาล์ว 4 เปิด 19:00 1 ชั่วโมง
-	{20, 0, VALVE5_PIN, valve5Duration},   // วาล์ว 5 เปิด 20:00 1 ชั่วโมง
-	{21, 0, VALVE6_PIN, valve6Duration},   // วาล์ว 6 เปิด 21:00 1 ชั่วโมง
-	{22, 0, VALVE7_PIN, valve7Duration},   // วาล์ว 7 เปิด 22:00 1 ชั่วโมง
-	{23, 0, VALVE8_PIN, valve8Duration}   // วาล์ว 8 เปิด 23:00 1 ชั่วโมง
-};
-
 void checkSchedules() {
     for(int i = 0; i < 3; i++) {
         if(timeinfo.tm_hour == schedules[i].hour && 
@@ -787,17 +850,13 @@ bool checkDHT22() {
 bool checkDS18B20() {
     ds18b20.requestTemperatures();
     float temp = ds18b20.getTempCByIndex(0);
-    
     if (temp != DEVICE_DISCONNECTED_C) {
         temperature = temp;
-        
         // แสดงผลใน Serial Monitor
         Serial.printf("Temperature (DS18B20): %.1f°C\n", temperature);
-        
         // แสดงผลใน temperatureLabel
         String tempText = "Temperature: " + String(temperature, 1) + "°C";
         lv_label_set_text(temperatureLabel, tempText.c_str());
-        
         // เปลี่ยนสีข้อความเป็นสีขาว (ปกติ)
         lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
         return true;  // อ่านค่าได้สำเร็จ
@@ -866,71 +925,6 @@ void loadConfig() {
     Serial.println("Config loaded successfully");
   } else {
     Serial.println("Config file not found, using default values");
-    saveConfig(); // สร้างไฟล์ config ใหม่ด้วยค่าเริ่มต้น
+    saveConfig("all"); // สร้างไฟล์ config ใหม่ด้วยค่าเริ่มต้น
   }
-}
-
-// ฟังก์ชันสำหรับบันทึกค่า config ลงไฟล์
-void saveConfig(String saveType = "all") {
-  File configFile = SPIFFS.open("/config.json", "r");
-  StaticJsonDocument<1024> doc;
-  
-  // ถ้ามีไฟล์อยู่แล้ว ให้โหลดค่าที่มีอยู่ก่อน
-  if(configFile) {
-    DeserializationError error = deserializeJson(doc, configFile);
-    configFile.close();
-    if(error) {
-      Serial.println("Failed to parse existing config file");
-    }
-  }
-
-  // เปิดไฟล์ใหม่สำหรับเขียน
-  configFile = SPIFFS.open("/config.json", "w");
-  if(!configFile) {
-    Serial.println("Failed to open config file for writing");
-    return;
-  }
-
-  // บันทึกค่าตามประเภทที่ต้องการ
-  if(saveType == "all" || saveType == "names") {
-    // บันทึกชื่อวาล์ว
-    doc["valve1Name"] = VALVE1NAME;
-    doc["valve2Name"] = VALVE2NAME;
-    doc["valve3Name"] = VALVE3NAME;
-    doc["valve4Name"] = VALVE4NAME;
-    doc["valve5Name"] = VALVE5NAME;
-    doc["valve6Name"] = VALVE6NAME;
-    doc["valve7Name"] = VALVE7NAME;
-    doc["valve8Name"] = VALVE8NAME;
-  }
-
-  if(saveType == "all" || saveType == "durations") {
-    // บันทึกระยะเวลาเปิดวาล์ว
-    doc["valve1Duration"] = valve1Duration;
-    doc["valve2Duration"] = valve2Duration;
-    doc["valve3Duration"] = valve3Duration;
-    doc["valve4Duration"] = valve4Duration;
-    doc["valve5Duration"] = valve5Duration;
-    doc["valve6Duration"] = valve6Duration;
-    doc["valve7Duration"] = valve7Duration;
-    doc["valve8Duration"] = valve8Duration;
-  }
-
-  if(saveType == "all" || saveType == "schedules") {
-    // บันทึกตารางเวลา
-    JsonArray scheduleArray = doc.createNestedArray("schedules");
-    for(int i = 0; i < sizeof(schedules)/sizeof(schedules[0]); i++) {
-      JsonObject schedule = scheduleArray.createNestedObject();
-      schedule["hour"] = schedules[i].hour;
-      schedule["minute"] = schedules[i].minute;
-      schedule["valveIndex"] = schedules[i].valveIndex;
-      schedule["duration"] = schedules[i].duration;
-    }
-  }
-
-  if(serializeJson(doc, configFile) == 0) {
-    Serial.println("Failed to write to config file");
-  }
-  configFile.close();
-  Serial.println("Config saved successfully - " + saveType);
 }
