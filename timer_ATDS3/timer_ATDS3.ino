@@ -5,6 +5,10 @@
 #include <time.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <SPIFFS.h>
+#include <DHTesp.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 // Define pins for water valves
 const int VALVE1_PIN = 15;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
@@ -15,6 +19,20 @@ const int VALVE5_PIN = 42;  // เปลี่ยนเป็น PIN ที่�
 const int VALVE6_PIN = 41;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 const int VALVE7_PIN = 40;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
 const int VALVE8_PIN = 39;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
+#define DHTPIN 2
+#define DHTTYPE DHT22
+DHTesp dht;
+unsigned long lastReadTime = 0;
+const unsigned long READ_INTERVAL = 5000; // อ่านทุก 5 วินาที
+
+// DS18B20 setup
+#define DS18B20_PIN 4  // กำหนด pin สำหรับ DS18B20
+OneWire oneWire(DS18B20_PIN);
+DallasTemperature ds18b20(&oneWire);
+// ตัวแปรสำหรับเก็บค่า
+float temperature = 0,humidity = 0;
+bool useDS18B20 = false;  // ตัวแปรเช็คว่าใช้ DS18B20 หรือไม่
+
 // Timer variables
 unsigned long Duration = 600000;		//ระยะเวลาในการเปิดวาล์ว 10 นาที
 unsigned long valve1StartTime = 0;
@@ -48,7 +66,7 @@ const int daylightOffset_sec = 0;
 struct tm timeinfo;
 bool valveOpenedToday = false;
 String VALVE1NAME="",VALVE2NAME="",VALVE3NAME="",VALVE4NAME="",VALVE5NAME="",VALVE6NAME="",VALVE7NAME="",VALVE8NAME="";
-int temperature=0,humidity=0;
+//int temperature=0,humidity=0;
 // กำหนด state ของวาล์วแต่ละตัว
 enum ValveState {
     IDLE,       // พัก
@@ -90,15 +108,16 @@ lv_obj_t *valve8Label;
 lv_obj_t *timeLabel;  // Label สำหรับแสดงเวลา
 lv_obj_t *ipLabel;  // เพิ่ม label สำหรับแสดง IP
 lv_obj_t *lastUpdateLabel;
+lv_obj_t *temperatureLabel;
 
 int count = 0;
 
 // WiFi credentials
 // ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
-const char* ssid = "TP-Link_3800";
-const char* password = "46284143";
-//const char* ssid = "Xiaomi 13";
-//const char* password = "11111111";
+//const char* ssid = "TP-Link_3800";
+//const char* password = "46284143";
+const char* ssid = "Xiaomi 13";
+const char* password = "11111111";
 // API Handlers
 void handleGetStatus(AsyncWebServerRequest *request) {
   // Print request details
@@ -224,8 +243,8 @@ void openValve(int valvePin) {
   setLabel();
 }
 void closeValve(int valvePin) {
-	Serial.println("closeValve "+String(valvePin));
-	//setValveRunning(valvePin, false);
+  Serial.println("closeValve "+String(valvePin));
+  //setValveRunning(valvePin, false);
 	if(valvePin==VALVE1_PIN){    digitalWrite(VALVE1_PIN, LOW);    VALVE1RUNNING = false;VALVES[0].isRunning = false;
 	}else if(valvePin==VALVE2_PIN){    digitalWrite(VALVE2_PIN, LOW);    VALVE2RUNNING = false;VALVES[1].isRunning = false;
 	}else if(valvePin==VALVE3_PIN){    digitalWrite(VALVE3_PIN, LOW);    VALVE3RUNNING = false;VALVES[2].isRunning = false;
@@ -248,25 +267,29 @@ void setLabel(){
 	if(VALVE7RUNNING){    lv_label_set_text(valve7Label, (VALVE7NAME+"  ON "+String(valve7Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve7Label, (VALVE7NAME+" OFF").c_str());  }
 	if(VALVE8RUNNING){    lv_label_set_text(valve8Label, (VALVE8NAME+"  ON "+String(valve8Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve8Label, (VALVE8NAME+" OFF").c_str());  }
 }
-void setValveName(String valve,String name){
-	if(valve=="1"){VALVE1NAME=name;}
-	else if(valve=="2"){VALVE2NAME=name;}
-	else if(valve=="3"){VALVE3NAME=name;}
-	else if(valve=="4"){VALVE4NAME=name;}
-	else if(valve=="5"){VALVE5NAME=name;}
-	else if(valve=="6"){VALVE6NAME=name;}
-	else if(valve=="7"){VALVE7NAME=name;}
-	else if(valve=="8"){VALVE8NAME=name;}
+void setValveName(String valve, String name) {
+  if(valve=="1"){VALVE1NAME=name;}
+  else if(valve=="2"){VALVE2NAME=name;}
+  else if(valve=="3"){VALVE3NAME=name;}
+  else if(valve=="4"){VALVE4NAME=name;}
+  else if(valve=="5"){VALVE5NAME=name;}
+  else if(valve=="6"){VALVE6NAME=name;}
+  else if(valve=="7"){VALVE7NAME=name;}
+  else if(valve=="8"){VALVE8NAME=name;}
+  
+  saveConfig("names"); // บันทึกเฉพาะชื่อวาล์ว
 }
-void setValveDuration(String valve,String duration){
-	if(valve=="1"){valve1Duration=duration.toInt();	VALVES[0].duration = valve1Duration;}
-	else if(valve=="2"){valve2Duration=duration.toInt();	VALVES[1].duration = valve2Duration;}
-	else if(valve=="3"){valve3Duration=duration.toInt();	VALVES[2].duration = valve3Duration;}
-	else if(valve=="4"){valve4Duration=duration.toInt();	VALVES[3].duration = valve4Duration;}
-	else if(valve=="5"){valve5Duration=duration.toInt();	VALVES[4].duration = valve5Duration;}
-	else if(valve=="6"){valve6Duration=duration.toInt();	VALVES[5].duration = valve6Duration;}
-	else if(valve=="7"){valve7Duration=duration.toInt();	VALVES[6].duration = valve7Duration;}
-	else if(valve=="8"){valve8Duration=duration.toInt();	VALVES[7].duration = valve8Duration;}
+void setValveDuration(String valve, String duration) {
+  if(valve=="1"){valve1Duration=duration.toInt(); VALVES[0].duration = valve1Duration;}
+  else if(valve=="2"){valve2Duration=duration.toInt(); VALVES[1].duration = valve2Duration;}
+  else if(valve=="3"){valve3Duration=duration.toInt(); VALVES[2].duration = valve3Duration;}
+  else if(valve=="4"){valve4Duration=duration.toInt(); VALVES[3].duration = valve4Duration;}
+  else if(valve=="5"){valve5Duration=duration.toInt(); VALVES[4].duration = valve5Duration;}
+  else if(valve=="6"){valve6Duration=duration.toInt(); VALVES[5].duration = valve6Duration;}
+  else if(valve=="7"){valve7Duration=duration.toInt(); VALVES[6].duration = valve7Duration;}
+  else if(valve=="8"){valve8Duration=duration.toInt(); VALVES[7].duration = valve8Duration;}
+  
+  saveConfig("durations"); // บันทึกเฉพาะระยะเวลา
 }
 void setValveTimerStart(int valvePin,unsigned long duration) {
   Serial.println("setValveTimerStart "+String(valvePin)+" "+String(duration));
@@ -503,6 +526,11 @@ void initLabel(){
   valve8Label = lv_label_create(lv_scr_act());
   lv_label_set_text(valve8Label, "Valve8 Control");
   lv_obj_align(valve8Label, LV_ALIGN_TOP_RIGHT, 0, 90);  // เลื่อนลง 20 pixels
+
+  temperatureLabel = lv_label_create(lv_scr_act());
+  lv_label_set_text(temperatureLabel, "Temperature: --°C");
+  lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_align(temperatureLabel, LV_ALIGN_BOTTOM_LEFT, 10, -20);  // เลื่อนลง 20 pixels
 }
 void openValveSchedule(){
 	// ตัวอย่างการตั้งเวลาเปิดวาล์วตามตารางเวลา
@@ -579,6 +607,17 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Display.begin();  Display.useLVGL();  Switch.begin();
+  
+  // Initialize SPIFFS
+  if(!SPIFFS.begin(true)){
+    Serial.println("An error occurred while mounting SPIFFS");
+    return;
+  }
+  Serial.println("SPIFFS mounted successfully");
+  
+  // Load configuration
+  loadConfig();
+  
   // Set background color to orange when WiFi is connected
   lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 165, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
   initLabel();
@@ -635,25 +674,27 @@ void setup() {
   server.on("/api/valve", HTTP_POST, handleControlValve);
   server.begin();
   setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
+  dht.setup(DHTPIN, DHTesp::DHT22);  // แก้ไขจาก dht.begin() เป็น dht.setup()
+  
 }
 
 void loop() {
-  	// put your main code here, to run repeatedly:
-  	Display.loop();
-  	Switch.loop();
-  	// Update time display
-  	updateTimeDisplay();
+  // put your main code here, to run repeatedly:
+  Display.loop();
+  Switch.loop();
+  // Update time display
+  updateTimeDisplay();
   	openValveSchedule();
-	
-	// Check WiFi connection
+
+  // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
-		Serial.println("WiFi connection lost. Reconnecting...");
-		WiFi.begin(ssid, password);
-		while (WiFi.status() != WL_CONNECTED) {
-		delay(500);
-		Serial.print(".");
-		}
-		Serial.println("\nReconnected to WiFi");
+    Serial.println("WiFi connection lost. Reconnecting...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println("\nReconnected to WiFi");
 	}
 
 	// ตรวจสอบเวลาและปิดวาล์ว
@@ -664,6 +705,13 @@ void loop() {
 	updateDisplay();
 	//openValve();
 	//delay(500);
+
+  unsigned long currentTime = millis();
+  
+  if (currentTime - lastReadTime >= READ_INTERVAL) {
+    checkTemperature();
+    lastReadTime = currentTime;
+  }
 }
 
 // ตัวอย่างการตั้งเวลาเปิดวาล์วตามเงื่อนไข
@@ -705,4 +753,184 @@ void checkSchedules() {
             setValveTimer(schedules[i].valveIndex, schedules[i].duration);
         }
     }
+}
+
+// Method สำหรับอ่านค่า DHT22
+bool checkDHT22() {
+    float temp = dht.getTemperature();
+    float hum = dht.getHumidity();
+    
+    if (dht.getStatus() == DHTesp::ERROR_NONE) {
+        temperature = temp;
+        humidity = hum;
+        
+        // แสดงผลใน Serial Monitor
+        Serial.printf("Temperature: %.1f°C, Humidity: %.1f%%\n", temperature, humidity);
+        
+        // แสดงผลใน temperatureLabel
+        String tempText = "Temperature: " + String(temperature, 1) + "°C, Humidity: " + String(humidity, 1) + "%";
+        lv_label_set_text(temperatureLabel, tempText.c_str());
+        
+        // เปลี่ยนสีข้อความเป็นสีขาว (ปกติ)
+        lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
+        return true;  // อ่านค่าได้สำเร็จ
+    } else {
+        // กรณีอ่านค่าไม่ได้
+        Serial.println("DHT22 Error: " + String(dht.getStatusString()));
+        lv_label_set_text(temperatureLabel, "DHT22 Error: Sensor not found");
+        lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 0, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
+        return false;  // อ่านค่าไม่สำเร็จ
+    }
+}
+
+// Method สำหรับอ่านค่า DS18B20
+bool checkDS18B20() {
+    ds18b20.requestTemperatures();
+    float temp = ds18b20.getTempCByIndex(0);
+    
+    if (temp != DEVICE_DISCONNECTED_C) {
+        temperature = temp;
+        
+        // แสดงผลใน Serial Monitor
+        Serial.printf("Temperature (DS18B20): %.1f°C\n", temperature);
+        
+        // แสดงผลใน temperatureLabel
+        String tempText = "Temperature: " + String(temperature, 1) + "°C";
+        lv_label_set_text(temperatureLabel, tempText.c_str());
+        
+        // เปลี่ยนสีข้อความเป็นสีขาว (ปกติ)
+        lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
+        return true;  // อ่านค่าได้สำเร็จ
+    } else {
+        // กรณีอ่านค่าไม่ได้
+        Serial.println("DS18B20 Error: Could not read temperature");
+        lv_label_set_text(temperatureLabel, "DS18B20 Error: Sensor not found");
+        lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 0, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
+        return false;  // อ่านค่าไม่สำเร็จ
+    }
+}
+
+// Method หลักสำหรับตรวจสอบอุณหภูมิ
+void checkTemperature() {
+    if (!useDS18B20) {
+        // ลองอ่านค่า DHT22 ก่อน
+        if (!checkDHT22()) {
+            // ถ้า DHT22 ไม่ทำงาน ให้ลองใช้ DS18B20
+            Serial.println("DHT22 Error, trying DS18B20");
+            useDS18B20 = true;
+            checkDS18B20();
+        }
+    } else {
+        // ใช้ DS18B20
+        checkDS18B20();
+    }
+}
+
+// ฟังก์ชันสำหรับโหลดค่า config จากไฟล์
+void loadConfig() {
+  if(SPIFFS.exists("/config.json")) {
+    File configFile = SPIFFS.open("/config.json", "r");
+    if(!configFile) {
+      Serial.println("Failed to open config file");
+      return;
+    }
+
+    StaticJsonDocument<1024> doc;
+    DeserializationError error = deserializeJson(doc, configFile);
+    configFile.close();
+
+    if(error) {
+      Serial.println("Failed to parse config file");
+      return;
+    }
+
+    // โหลดค่าต่างๆ จาก config
+    if(doc.containsKey("valve1Name")) VALVE1NAME = doc["valve1Name"].as<String>();
+    if(doc.containsKey("valve2Name")) VALVE2NAME = doc["valve2Name"].as<String>();
+    if(doc.containsKey("valve3Name")) VALVE3NAME = doc["valve3Name"].as<String>();
+    if(doc.containsKey("valve4Name")) VALVE4NAME = doc["valve4Name"].as<String>();
+    if(doc.containsKey("valve5Name")) VALVE5NAME = doc["valve5Name"].as<String>();
+    if(doc.containsKey("valve6Name")) VALVE6NAME = doc["valve6Name"].as<String>();
+    if(doc.containsKey("valve7Name")) VALVE7NAME = doc["valve7Name"].as<String>();
+    if(doc.containsKey("valve8Name")) VALVE8NAME = doc["valve8Name"].as<String>();
+
+    if(doc.containsKey("valve1Duration")) valve1Duration = doc["valve1Duration"];
+    if(doc.containsKey("valve2Duration")) valve2Duration = doc["valve2Duration"];
+    if(doc.containsKey("valve3Duration")) valve3Duration = doc["valve3Duration"];
+    if(doc.containsKey("valve4Duration")) valve4Duration = doc["valve4Duration"];
+    if(doc.containsKey("valve5Duration")) valve5Duration = doc["valve5Duration"];
+    if(doc.containsKey("valve6Duration")) valve6Duration = doc["valve6Duration"];
+    if(doc.containsKey("valve7Duration")) valve7Duration = doc["valve7Duration"];
+    if(doc.containsKey("valve8Duration")) valve8Duration = doc["valve8Duration"];
+
+    Serial.println("Config loaded successfully");
+  } else {
+    Serial.println("Config file not found, using default values");
+    saveConfig(); // สร้างไฟล์ config ใหม่ด้วยค่าเริ่มต้น
+  }
+}
+
+// ฟังก์ชันสำหรับบันทึกค่า config ลงไฟล์
+void saveConfig(String saveType = "all") {
+  File configFile = SPIFFS.open("/config.json", "r");
+  StaticJsonDocument<1024> doc;
+  
+  // ถ้ามีไฟล์อยู่แล้ว ให้โหลดค่าที่มีอยู่ก่อน
+  if(configFile) {
+    DeserializationError error = deserializeJson(doc, configFile);
+    configFile.close();
+    if(error) {
+      Serial.println("Failed to parse existing config file");
+    }
+  }
+
+  // เปิดไฟล์ใหม่สำหรับเขียน
+  configFile = SPIFFS.open("/config.json", "w");
+  if(!configFile) {
+    Serial.println("Failed to open config file for writing");
+    return;
+  }
+
+  // บันทึกค่าตามประเภทที่ต้องการ
+  if(saveType == "all" || saveType == "names") {
+    // บันทึกชื่อวาล์ว
+    doc["valve1Name"] = VALVE1NAME;
+    doc["valve2Name"] = VALVE2NAME;
+    doc["valve3Name"] = VALVE3NAME;
+    doc["valve4Name"] = VALVE4NAME;
+    doc["valve5Name"] = VALVE5NAME;
+    doc["valve6Name"] = VALVE6NAME;
+    doc["valve7Name"] = VALVE7NAME;
+    doc["valve8Name"] = VALVE8NAME;
+  }
+
+  if(saveType == "all" || saveType == "durations") {
+    // บันทึกระยะเวลาเปิดวาล์ว
+    doc["valve1Duration"] = valve1Duration;
+    doc["valve2Duration"] = valve2Duration;
+    doc["valve3Duration"] = valve3Duration;
+    doc["valve4Duration"] = valve4Duration;
+    doc["valve5Duration"] = valve5Duration;
+    doc["valve6Duration"] = valve6Duration;
+    doc["valve7Duration"] = valve7Duration;
+    doc["valve8Duration"] = valve8Duration;
+  }
+
+  if(saveType == "all" || saveType == "schedules") {
+    // บันทึกตารางเวลา
+    JsonArray scheduleArray = doc.createNestedArray("schedules");
+    for(int i = 0; i < sizeof(schedules)/sizeof(schedules[0]); i++) {
+      JsonObject schedule = scheduleArray.createNestedObject();
+      schedule["hour"] = schedules[i].hour;
+      schedule["minute"] = schedules[i].minute;
+      schedule["valveIndex"] = schedules[i].valveIndex;
+      schedule["duration"] = schedules[i].duration;
+    }
+  }
+
+  if(serializeJson(doc, configFile) == 0) {
+    Serial.println("Failed to write to config file");
+  }
+  configFile.close();
+  Serial.println("Config saved successfully - " + saveType);
 }
