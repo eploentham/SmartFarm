@@ -9,6 +9,17 @@
 #include <DHTesp.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <AsyncMqttClient.h>
+//#include <esp_task_wdt.h>
+
+// MQTT Configuration
+const char* mqtt_server = "192.168.100.242";
+const int mqtt_port = 1883;
+const char* mqtt_client_id = "ESP32_Temperature1";
+const char* mqtt_topic = "smartfarm/temperature";
+#define MQTT_USERNAME "pop"
+#define MQTT_PASSWORD "pop1"
+AsyncMqttClient mqttClient;
 
 // Define pins for water valves
 const int VALVE1_PIN = 15;  // เปลี่ยนเป็น PIN ที่ต้องการ ขา GPIO ที่ใช้งานได้สมบูรณ์ ไม่ชนกับอุปกรณ์อื่น ๆ
@@ -109,15 +120,17 @@ lv_obj_t *timeLabel;  // Label สำหรับแสดงเวลา
 lv_obj_t *ipLabel;  // เพิ่ม label สำหรับแสดง IP
 lv_obj_t *lastUpdateLabel;
 lv_obj_t *temperatureLabel;
-
+lv_obj_t *mqttLabel;
 int count = 0;
 
 // WiFi credentials
 // ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
-const char* ssid = "TP-Link_3800";
-const char* password = "46284143";
+//const char* ssid = "TP-Link_3800";
+//const char* password = "46284143";
 //const char* ssid = "Xiaomi 13";
 //const char* password = "11111111";
+const char* ssid = "dental";
+const char* password = "doctorbng5";
 // ตัวอย่างตารางเวลาเปิดวาล์ว
 struct Schedule {
     int hour;
@@ -274,7 +287,7 @@ void closeValve(int valvePin) {
 	}
 	setLabel();
 }
-void setLabel(){  
+void setLabel(){
 	//ทำแบบนี้ เพราะว่า กดปุ่มที่มีการเปิดปิดวาล์ว จะทำให้ปุ่มนี้มีการกดซ้ำได้ จึงต้องมีการตรวจสอบก่อน  
 	if(VALVE1RUNNING){    lv_label_set_text(valve1Label, (VALVE1NAME+"  ON "+String(valve1Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve1Label, (VALVE1NAME+" OFF").c_str());  }
 	if(VALVE2RUNNING){    lv_label_set_text(valve2Label, (VALVE2NAME+"  ON "+String(valve2Duration/60000)+" min").c_str());  }else{    lv_label_set_text(valve2Label, (VALVE2NAME+" OFF").c_str());  }
@@ -393,7 +406,6 @@ void setValveTimerStart(int valvePin,unsigned long duration) {
     valve8StartTime = millis();    valve8Duration = duration;    VALVE8RUNNING = true;    digitalWrite(VALVE8_PIN, HIGH);VALVES[7].isRunning = true;VALVES[7].startTime = millis();VALVES[7].duration = duration;
   }
 }
-
 void checkValve1Timer() {
   if (VALVE1RUNNING) {
     unsigned long currentTime = millis();
@@ -613,6 +625,11 @@ void initLabel(){
   lv_label_set_text(temperatureLabel, "Temperature: --°C");
   lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
   lv_obj_align(temperatureLabel, LV_ALIGN_BOTTOM_LEFT, 10, -20);  // เลื่อนลง 20 pixels
+
+  mqttLabel = lv_label_create(lv_scr_act());
+  lv_label_set_text(mqttLabel, "MQTT: --");
+  lv_obj_set_style_text_color(mqttLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_align(mqttLabel, LV_ALIGN_BOTTOM_RIGHT, -40, -5);  // เลื่อนลง 20 pixels
 }
 void openValveSchedule(){
 	// ตัวอย่างการตั้งเวลาเปิดวาล์วตามตารางเวลา
@@ -657,7 +674,6 @@ void setValveTimer(int valveIndex, unsigned long duration) {
         VALVES[valveIndex].isRunning = true;
     }
 }
-
 // ฟังก์ชันตรวจสอบและควบคุมวาล์ว
 void checkValves() {
     unsigned long currentTime = millis();
@@ -686,42 +702,59 @@ void checkValves() {
     }
 }
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(115200);
-  Display.begin();  Display.useLVGL();  Switch.begin();
-  
-  // Initialize SPIFFS
-  if(!SPIFFS.begin(true)){
-    Serial.println("An error occurred while mounting SPIFFS");
-    return;
-  }
-  Serial.println("SPIFFS mounted successfully");
-  
-  // Load configuration
-  loadConfig();
-  
-  // Set background color to orange when WiFi is connected
-  lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 165, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
-  initLabel();
+	// put your setup code here, to run once:
+	Serial.begin(115200);
+	Display.begin();  Display.useLVGL();  Switch.begin();
+	
+	// Initialize watchdog timer
+	//esp_task_wdt_init(30, true); // 30 seconds timeout
+	//esp_task_wdt_add(NULL); // Add current task to watchdog
+	
+	// Initialize SPIFFS
+	if(!SPIFFS.begin(true)){
+		Serial.println("An error occurred while mounting SPIFFS");
+		return;
+	}
+	Serial.println("SPIFFS mounted successfully");
+	
+	// Load configuration
+	loadConfig();
+	
+	// Set background color to orange when WiFi is connected
+	lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(255, 165, 0), LV_PART_MAIN | LV_STATE_DEFAULT);
+	initLabel();
 
-  // Setup valve pins as outputs
-  pinMode(VALVE1_PIN, OUTPUT);  pinMode(VALVE2_PIN, OUTPUT);  pinMode(VALVE3_PIN, OUTPUT);  pinMode(VALVE4_PIN, OUTPUT);
-  pinMode(VALVE5_PIN, OUTPUT);  pinMode(VALVE6_PIN, OUTPUT);  pinMode(VALVE7_PIN, OUTPUT);  pinMode(VALVE8_PIN, OUTPUT);
-  digitalWrite(VALVE1_PIN, LOW);  digitalWrite(VALVE2_PIN, LOW);  digitalWrite(VALVE3_PIN, LOW);  digitalWrite(VALVE4_PIN, LOW);
-  digitalWrite(VALVE5_PIN, LOW);  digitalWrite(VALVE6_PIN, LOW);  digitalWrite(VALVE7_PIN, LOW);  digitalWrite(VALVE8_PIN, LOW);
+	// Setup valve pins as outputs
+	pinMode(VALVE1_PIN, OUTPUT);  pinMode(VALVE2_PIN, OUTPUT);  pinMode(VALVE3_PIN, OUTPUT);  pinMode(VALVE4_PIN, OUTPUT);
+	pinMode(VALVE5_PIN, OUTPUT);  pinMode(VALVE6_PIN, OUTPUT);  pinMode(VALVE7_PIN, OUTPUT);  pinMode(VALVE8_PIN, OUTPUT);
+	digitalWrite(VALVE1_PIN, LOW);  digitalWrite(VALVE2_PIN, LOW);  digitalWrite(VALVE3_PIN, LOW);  digitalWrite(VALVE4_PIN, LOW);
+	digitalWrite(VALVE5_PIN, LOW);  digitalWrite(VALVE6_PIN, LOW);  digitalWrite(VALVE7_PIN, LOW);  digitalWrite(VALVE8_PIN, LOW);
 
-  // Connect to WiFi
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting WIFI");
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print("+");
-  }
-  Serial.println("\nConnected to WiFi");  Serial.print("IP Address: ");  Serial.println(WiFi.localIP());
-  lv_label_set_text(ipLabel, WiFi.localIP().toString().c_str());
-  // Configure time
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+	// ตั้งค่า Static IP
+	IPAddress local_IP(172, 25, 10, 246);    // IP ที่ต้องการ
+	IPAddress gateway(172, 25, 255, 1);       // Gateway (มักเป็น IP ของ router)
+	IPAddress subnet(255, 255, 0, 0);      // Subnet mask
+	IPAddress primaryDNS(8, 8, 8, 8);        // DNS หลัก (Google DNS)
+	IPAddress secondaryDNS(8, 8, 4, 4);      // DNS รอง (Google DNS)
+
+	// ตั้งค่า Static IP
+	//if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+	//  Serial.println("STA Failed to configure");
+	//}
+	
+	// เชื่อมต่อ WiFi
+	WiFi.begin(ssid, password);
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+		Serial.print("+");
+	}
+	
+	Serial.println("WiFi connected");
+	Serial.print("IP address: ");
+	Serial.println(WiFi.localIP());
+	lv_label_set_text(ipLabel, WiFi.localIP().toString().c_str());
+	// Configure time
+	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   // Button handlers
   Switch.onPressed(A, []() {
     //Serial.println("Switch.onPressed A");
@@ -755,18 +788,32 @@ void setup() {
   server.on("/api/status", HTTP_GET, handleGetStatus);
   server.on("/api/valve", HTTP_POST, handleControlValve);
   server.begin();
-  setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
-  dht.setup(DHTPIN, DHTesp::DHT22);  // แก้ไขจาก dht.begin() เป็น dht.setup()
-  
+	setValveName("1", "Valve1");  setValveName("2", "Valve2");  setValveName("3", "Valve3");  setValveName("4", "Valve4");  setValveName("5", "Valve5");  setValveName("6", "Valve6");  setValveName("7", "Valve7");  setValveName("8", "Valve8");
+	dht.setup(DHTPIN, DHTesp::DHT22);  // แก้ไขจาก dht.begin() เป็น dht.setup()
+	
+	// Setup MQTT
+	mqttClient.setServer(mqtt_server, mqtt_port);
+	mqttClient.setClientId(mqtt_client_id);
+	mqttClient.setKeepAlive(5).setWill("smartfarm/status", 2, true, "offline");
+	//mqttClient.setCredentials(MQTT_USERNAME, MQTT_PASSWORD);
+	
+	// Setup MQTT callbacks
+	mqttClient.onConnect(onMqttConnect);
+	mqttClient.onDisconnect(onMqttDisconnect);
+	mqttClient.onPublish(onMqttPublish);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   Display.loop();
   Switch.loop();
+  
+  // Reset watchdog timer
+  //esp_task_wdt_reset();
+  
   // Update time display
   updateTimeDisplay();
-  	openValveSchedule();
+  openValveSchedule();
 
   // Check WiFi connection
   if (WiFi.status() != WL_CONNECTED) {
@@ -777,21 +824,23 @@ void loop() {
       Serial.print(".");
     }
     Serial.println("\nReconnected to WiFi");
-	}
+  }
 
-	// ตรวจสอบเวลาและปิดวาล์ว
-	checkValve1Timer();
-	// ตรวจสอบและควบคุมวาล์ว
-	checkValves();
-	// อัพเดทสถานะบนจอ
-	updateDisplay();
-	//openValve();
-	//delay(500);
+  // ตรวจสอบเวลาและปิดวาล์ว
+  checkValve1Timer();
+  // ตรวจสอบและควบคุมวาล์ว
+  checkValves();
+  // อัพเดทสถานะบนจอ
+  updateDisplay();
 
   unsigned long currentTime = millis();
-  
   if (currentTime - lastReadTime >= READ_INTERVAL) {
     checkTemperature();
+    if (mqttClient.connected()) {
+      publishTemperature();
+    } else {
+      connectMQTT();
+    }
     lastReadTime = currentTime;
   }
 }
@@ -828,10 +877,10 @@ bool checkDHT22() {
         humidity = hum;
         
         // แสดงผลใน Serial Monitor
-        Serial.printf("Temperature: %.1f°C, Humidity: %.1f%%\n", temperature, humidity);
+        Serial.printf("T: %.1f°C, H: %.1f%%\n", temperature, humidity);
         
         // แสดงผลใน temperatureLabel
-        String tempText = "Temperature: " + String(temperature, 1) + "°C, Humidity: " + String(humidity, 1) + "%";
+        String tempText = "T: " + String(temperature, 1) + "°C, H: " + String(humidity, 1) + "%";
         lv_label_set_text(temperatureLabel, tempText.c_str());
         
         // เปลี่ยนสีข้อความเป็นสีขาว (ปกติ)
@@ -855,7 +904,7 @@ bool checkDS18B20() {
         // แสดงผลใน Serial Monitor
         Serial.printf("Temperature (DS18B20): %.1f°C\n", temperature);
         // แสดงผลใน temperatureLabel
-        String tempText = "Temperature: " + String(temperature, 1) + "°C";
+        String tempText = "T: " + String(temperature, 1) + "°C";
         lv_label_set_text(temperatureLabel, tempText.c_str());
         // เปลี่ยนสีข้อความเป็นสีขาว (ปกติ)
         lv_obj_set_style_text_color(temperatureLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -927,4 +976,44 @@ void loadConfig() {
     Serial.println("Config file not found, using default values");
     saveConfig("all"); // สร้างไฟล์ config ใหม่ด้วยค่าเริ่มต้น
   }
+}
+
+// MQTT Callback functions
+void onMqttConnect(bool sessionPresent) {
+  Serial.println("Connected to MQTT");
+  lv_label_set_text(mqttLabel, "MQTT: OK");
+}
+
+void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
+  Serial.println("Disconnected from MQTT");
+  if (WiFi.isConnected()) {
+    Serial.println("Reconnecting to MQTT...");
+    mqttClient.connect();
+  }
+}
+
+void onMqttPublish(uint16_t packetId) {
+  Serial.println("Publish acknowledged");
+}
+
+// ฟังก์ชันเชื่อมต่อ MQTT
+void connectMQTT() {
+  if (!mqttClient.connected()) {
+    Serial.println("Connecting to MQTT...");
+    mqttClient.connect();
+  }
+}
+
+// ฟังก์ชันส่งข้อมูลอุณหภูมิผ่าน MQTT
+void publishTemperature() {
+  StaticJsonDocument<200> doc;
+  doc["temperature"] = temperature;
+  doc["humidity"] = humidity;
+  doc["sensor"] = useDS18B20 ? "DS18B20" : "DHT22";
+  
+  String jsonString;
+  serializeJson(doc, jsonString);
+  
+  uint16_t packetId = mqttClient.publish(mqtt_topic, 1, true, jsonString.c_str());
+  Serial.printf("Publishing on topic %s at QoS 1, packetId: %i\n", mqtt_topic, packetId);
 }

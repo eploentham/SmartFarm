@@ -15,8 +15,8 @@
 
 #define MQTT_SERVER   "172.25.10.13"
 #define MQTT_PORT     1883
-#define MQTT_USERNAME "pop"
-#define MQTT_PASSWORD "pop1"
+#define MQTT_USERNAME "mqtt_user_ref"
+#define MQTT_PASSWORD "Ekartc2c5"
 String MQTT_NAME ="1-MRI-01";
 const char* mqtt_topic = "mqtt_refrigerator";
 int loopwificonne,loopwificonnect=0;
