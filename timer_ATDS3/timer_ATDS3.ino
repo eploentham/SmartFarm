@@ -629,7 +629,7 @@ void initLabel(){
   mqttLabel = lv_label_create(lv_scr_act());
   lv_label_set_text(mqttLabel, "MQTT: --");
   lv_obj_set_style_text_color(mqttLabel, lv_color_make(255, 255, 255), LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_align(mqttLabel, LV_ALIGN_BOTTOM_RIGHT, -40, -5);  // เลื่อนลง 20 pixels
+  lv_obj_align(mqttLabel, LV_ALIGN_BOTTOM_RIGHT, -60, -5);  // เลื่อนลง 20 pixels
 }
 void openValveSchedule(){
 	// ตัวอย่างการตั้งเวลาเปิดวาล์วตามตารางเวลา
