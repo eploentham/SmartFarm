@@ -6,7 +6,6 @@ import time
 import pytz
 import paho.mqtt.client as mqtt
 
-
 class DigitalClock:
     def __init__(self, root):
         self.root = root
