@@ -4,7 +4,6 @@ import ntplib
 from datetime import datetime
 import time
 import pytz
-import paho.mqtt.client as mqtt
 
 class DigitalClock:
     def __init__(self, root):
@@ -41,41 +40,21 @@ class DigitalClock:
             # Fallback to system time if NTP fails
             thailand_tz = pytz.timezone('Asia/Bangkok')
             return datetime.now(thailand_tz)
-    
+
     def update_time(self):
-        # Get current time from NTP
+        # Get current time from NTP server
         current_time = self.get_ntp_time()
         
-        # Format time and date
-        time_str = current_time.strftime('%H:%M:%S')
-        date_str = current_time.strftime('%A, %B %d, %Y')
+        # Update time label
+        time_string = current_time.strftime('%H:%M:%S')
+        self.time_label.config(text=time_string)
         
-        # Update labels
-        self.time_label.config(text=time_str)
-        self.date_label.config(text=date_str)
+        # Update date label
+        date_string = current_time.strftime('%Y-%m-%d')
+        self.date_label.config(text=date_string)
         
         # Schedule next update
         self.root.after(1000, self.update_time)
-
-# Callback เมื่อเชื่อมต่อสำเร็จ
-def on_connect(client, userdata, flags, rc):
-    print("Connected with result code "+str(rc))
-    client.subscribe("test/topic")
-
-# Callback เมื่อได้รับข้อความ
-def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
-
-# สร้าง client
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_message = on_message
-
-# เชื่อมต่อกับ broker
-client.connect("localhost", 1883, 60)
-
-# รอรับข้อความ
-client.loop_forever()
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -1009,7 +1009,7 @@ void publishTemperature() {
   StaticJsonDocument<200> doc;
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
-  doc["sensor"] = useDS18B20 ? "DS18B20" : "DHT22";
+  doc["sensor_device"] = useDS18B20 ? "DS18B20" : "DHT22";
   
   String jsonString;
   serializeJson(doc, jsonString);
