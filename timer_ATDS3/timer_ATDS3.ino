@@ -13,12 +13,22 @@
 //#include <esp_task_wdt.h>
 
 // MQTT Configuration
-const char* mqtt_server = "192.168.100.242";
+//const char* mqtt_server = "192.168.100.242";
+const char* mqtt_server = "192.168.1.154";
 const int mqtt_port = 1883;
 const char* mqtt_client_id = "ESP32_Temperature1";
 const char* mqtt_topic = "smartfarm/temperature";
 #define MQTT_USERNAME "pop"
 #define MQTT_PASSWORD "pop1"
+// WiFi credentials
+// ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
+const char* ssid = "TP-Link_3800";
+const char* password = "46284143";
+//const char* ssid = "Xiaomi 13";
+//const char* password = "11111111";
+//const char* ssid = "dental";
+//const char* password = "doctorbng5";
+
 AsyncMqttClient mqttClient;
 
 // Define pins for water valves
@@ -34,7 +44,7 @@ const int VALVE8_PIN = 39;  // เปลี่ยนเป็น PIN ที่�
 #define DHTTYPE DHT22
 DHTesp dht;
 unsigned long lastReadTime = 0;
-const unsigned long READ_INTERVAL = 5000; // อ่านทุก 5 วินาที
+const unsigned long READ_INTERVAL = 60000; // อ่านทุก 5 วินาที
 
 // DS18B20 setup
 #define DS18B20_PIN 4  // กำหนด pin สำหรับ DS18B20
@@ -122,15 +132,6 @@ lv_obj_t *lastUpdateLabel;
 lv_obj_t *temperatureLabel;
 lv_obj_t *mqttLabel;
 int count = 0;
-
-// WiFi credentials
-// ถ้าหน้าจอ เป็นสีตุ่นๆ ให้ดู ssid กับ password ว่าถูกต้องหรือไม่
-//const char* ssid = "TP-Link_3800";
-//const char* password = "46284143";
-//const char* ssid = "Xiaomi 13";
-//const char* password = "11111111";
-const char* ssid = "dental";
-const char* password = "doctorbng5";
 // ตัวอย่างตารางเวลาเปิดวาล์ว
 struct Schedule {
     int hour;
@@ -1009,7 +1010,7 @@ void publishTemperature() {
   StaticJsonDocument<200> doc;
   doc["temperature"] = temperature;
   doc["humidity"] = humidity;
-  doc["sensor_device"] = useDS18B20 ? "DS18B20" : "DHT22";
+  doc["sensor_device"] = useDS18B20 ? "DS18B20" : "nw1_home1_DHT22";
   
   String jsonString;
   serializeJson(doc, jsonString);
