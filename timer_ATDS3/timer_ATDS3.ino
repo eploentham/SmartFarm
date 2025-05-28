@@ -11,7 +11,7 @@
 #include <DallasTemperature.h>
 #include <AsyncMqttClient.h>
 //#include <esp_task_wdt.h>
-
+//LVGL  ต้องเป็น version 8.3.10
 // MQTT Configuration
 //const char* mqtt_server = "192.168.100.242";
 const char* mqtt_server = "192.168.1.154";
