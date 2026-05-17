@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 import pytz
 import mysql.connector
-
+# Last edited: 2026-05-17 by Ekapop P. (Added rain duration details)
 db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 """
