@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 import pytz
 import mysql.connector
-# Last edited: 2026-05-17 by Ekapop P. (Added rain duration details)
+
 db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 """
@@ -62,7 +62,7 @@ class DigitalClock:
         self.temp_label.config(text="T: --°C  H: --%")
         # Label rain status - มุมขวาบน ระดับวันที่ ต่ำกว่าอุณหภูมิ
         self.rain_label = tk.Label(root, font=self.temp_font, bg='black', fg='#00BFFF')
-        self.rain_label.place(relx=0.98, y=temp_y + int(temp_font_size * 1.8)+60, anchor='e')
+        self.rain_label.place(relx=0.98, y=temp_y + int(temp_font_size * 1.8)+90, anchor='e')
         self.rain_label.config(text="ฝน: --")
 
         # Label งานที่ต้องทำ
@@ -149,10 +149,12 @@ class DigitalClock:
             #cursor.close()
             cursor.execute(""" SELECT SUM(truly_raining) * 0.5 AS minutes_raining_yesterday, MIN(timestamp) AS first_rain, MAX(timestamp) AS last_rain FROM t_rain_decision WHERE DATE(timestamp) = CURDATE() - INTERVAL 1 DAY   AND truly_raining = 1;        """)
             resultyesterday = cursor.fetchone()
+            cursor.execute(""" SELECT SUM(truly_raining) * 0.5 AS minutes_raining_two_days_ago, MIN(timestamp) AS first_rain, MAX(timestamp) AS last_rain FROM t_rain_decision WHERE DATE(timestamp) = CURDATE() - INTERVAL 2 DAY   AND truly_raining = 1;        """)
+            resulttwo_days_ago = cursor.fetchone()
             cursor.close()
 
             conn.close()
-    
+
             if result is None or result[0] is None:
                 return "ยังไม่มีข้อมูลฝน"  # no rain data yet
     
@@ -166,16 +168,32 @@ class DigitalClock:
                 if now.date() > date1.date():
                     txtrain = "ฝนหยุดตกไปเมื่อ " + date1.strftime('%d %H:%M')
                     if(resulttoday[0] is not None and resulttoday[0] > 0):
-                        txtrain += f"\n(ฝนตกไปแล้ว {resulttoday[0]:.1f} นาทีวันนี้)"
-                    if(resultyesterday[0] is not None and resultyesterday[0] > 0):
-                        txtrain += f"\n(ฝนตกไปแล้ว {resultyesterday[0]:.1f} นาทีเมื่อวาน)"
-                    return txtrain  # rain stopped today
-                else:
-                    txtrain = "ฝนหยุดวันนี้ " + date1.strftime('%H:%M') + " "
-                    if(resulttoday[0] is not None and resulttoday[0] > 0):
                         txtrain += f"\n(วันนี้ ฝนตกไปแล้ว {resulttoday[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(วันนี้ ฝนยังไม่ตกเลย)"
                     if(resultyesterday[0] is not None and resultyesterday[0] > 0):
                         txtrain += f"\n(เมื่อวาน ฝนตกไปแล้ว {resultyesterday[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(เมื่อวาน ฝนยังไม่ตกเลย)"
+                    if(resulttwo_days_ago[0] is not None and resulttwo_days_ago[0] > 0):
+                        txtrain += f"\n(สองวันก่อน ฝนตกไปแล้ว {resulttwo_days_ago[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(สองวันก่อน ฝนยังไม่ตกเลย)"
+                    return txtrain  # rain stopped today
+                else:
+                    txtrain = "ฝนหยุดวันนี้ " + date1.strftime('%d %H:%M') + " "
+                    if(resulttoday[0] is not None and resulttoday[0] > 0):
+                        txtrain += f"\n(วันนี้ ฝนตกไปแล้ว {resulttoday[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(วันนี้ ฝนยังไม่ตกเลย)"
+                    if(resultyesterday[0] is not None and resultyesterday[0] > 0):
+                        txtrain += f"\n(เมื่อวาน ฝนตกไปแล้ว {resultyesterday[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(เมื่อวาน ฝนยังไม่ตกเลย)"
+                    if(resulttwo_days_ago[0] is not None and resulttwo_days_ago[0] > 0):
+                        txtrain += f"\n(สองวันก่อน ฝนตกไปแล้ว {resulttwo_days_ago[0]:.1f} นาที)"
+                    else:
+                        txtrain += "\n(สองวันก่อน ฝนยังไม่ตกเลย)"
                     return txtrain  # rain stopped today
             else:
                 return f"ฝนไม่ตกแล้ว {days} วัน"
