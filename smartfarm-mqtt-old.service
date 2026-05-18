@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Farm MQTT Service
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/home/ekapop/smartfarm/bin/python /home/ekapop/smartfarm/mqtt.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ekapop/smartfarm/logs/mqtt-service.log
+StandardError=append:/home/ekapop/smartfarm/logs/mqtt-service.log
+
+[Install]
+WantedBy=multi-user.target

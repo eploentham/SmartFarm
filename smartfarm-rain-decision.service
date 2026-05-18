@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Farm Rain Decision Service
+After=network-online.target mariadb.service smartfarm-rain.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/home/ekapop/smartfarm/bin/python /home/ekapop/smartfarm/rain_decision.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ekapop/smartfarm/logs/rain-decision-service.log
+StandardError=append:/home/ekapop/smartfarm/logs/rain-decision-service.log
+
+[Install]
+WantedBy=multi-user.target

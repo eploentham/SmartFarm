@@ -86,12 +86,12 @@ class IPCameraStream:
 app = Flask(__name__)
 
 # Configure your camera URL here
-RTSP_URL = "rtsp://admin:Ekartc2c51%2A@192.168.1.179:554/stream1"  # Update with your camera details
+RTSP_URL = "rtsp://admin:Bng5linux1*%2A@192.168.100.221:554/stream1"  # Update with your camera details
 #RTSP_URL = "rtsp://192.168.1.179:554/stream1"
 #RTSP_URL = "rtsp://192.168.1.179:554"
 #RTSP_URL = "rtsp://ekapop:Ekartc2c51*@192.168.1.179:554/live"
 #RTSP_URL = "rtsp://admin:Ekartc2c51*@192.168.1.179:554/h264/ch1/main/av_stream"
-RTSP_URL = "rtsp://admin:Ekartc2c51*@192.168.1.115:554/stream1"
+#RTSP_URL = "rtsp://admin:Ekartc2c51*@192.168.1.115:554/stream1"
 camera_stream = None
 
 def gen_frames():

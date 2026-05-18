@@ -22,14 +22,13 @@ logging.basicConfig(
 # MariaDB configuration
 db_config = {
     'host': 'localhost',
-    'user': 'root',  # แก้เป็น username ของ MariaDB
+    'user': 'ekapop',  # แก้เป็น username ของ MariaDB
     'password': 'Ekartc2c51*',  # แก้เป็น password ของ MariaDB
     'database': 'smartfarm'
 }
 
 # MQTT configuration 
-#mqtt_broker = "192.168.100.242"  # แก้เป็น IP ของ MQTT broker
-mqtt_broker = "192.168.0.253"
+mqtt_broker = "192.168.100.242"  # แก้เป็น IP ของ MQTT broker
 mqtt_port = 1883
 mqtt_topic = "smartfarm/temperature"
 

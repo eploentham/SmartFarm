@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Farm Rain Detection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/home/ekapop/smartfarm/bin/python /home/ekapop/smartfarm/rain_detect_orchard.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ekapop/smartfarm/logs/rain-service.log
+StandardError=append:/home/ekapop/smartfarm/logs/rain-service.log
+
+[Install]
+WantedBy=multi-user.target
