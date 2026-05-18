@@ -1,144 +1,284 @@
 import tkinter as tk
 from tkinter import font
 import ntplib
-from datetime import datetime
 import time
+from datetime import datetime
 import pytz
-import board
-import adafruit_dht
+import mysql.connector
+# Last edited: 2026-05-17 by Ekapop P. (Added rain duration details)
+db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
-# Set sensor type and GPIO pin
-SENSORDHT22 = adafruit_dht.DHT22
-DHTPIN = board.D4  # GPIO4
-
+"""
+Possible return values:
+  - "ฝนตกอยู่"             when currently raining
+  - "ฝนหยุดวันนี้"          when rain stopped today
+  - "ฝนไม่ตกแล้ว X วัน"     when it's been X days since last rain
+  - "ยังไม่มีข้อมูลฝน"      when no rain has ever been recorded
+  - "อ่านข้อมูลไม่ได้"      on database error (fail-safe)
+"""
 class DigitalClock:
     def __init__(self, root):
         self.root = root
         self.root.title("Digital Clock")
-        #self.root.geometry("400x200")
         self.root.configure(bg='black')
-        # ตรวจสอบขนาดหน้าจอและทำให้เป็น full screen
+
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
-        self.root.geometry(f"{screen_width}x{screen_height}")
+
+        # ตั้งค่าให้แสดงเต็มหน้าจอ
         self.root.attributes('-fullscreen', True)
-        #self.root.bind("<Escape>", self.exit_fullscreen) #ใน raspi5 มี error
-        # ลองใช้วิธีอื่นในการกำหนด Escape key
-        try:
-            # Initialize DHT sensor
-            DHT_PIN = board.D4  # Example: DHT sensor connected to GPIO 4
-            self.dht_device = adafruit_dht.DHT22(DHT_PIN) # Or adafruit_dht.DHT11, etc.
 
-            self.root.bind("<Escape>", self.exit_fullscreen)
-        except Exception as e:
-            print(f"ไม่สามารถกำหนด Escape key ได้: {e}")
-            # ทางเลือกอื่น: สร้างปุ่มสำหรับออกจาก full screen แทน
-            #exit_button = tk.Button(root, text="Exit Fullscreen", command=self.exit_fullscreen)
-            #exit_button.place(x=10, y=10)
-        # สร้าง main frame
-        self.main_frame = tk.Frame(root, bg='black', height=100)
-        self.main_frame.pack(fill=tk.BOTH, expand=True)
-        self.top_frame = tk.Frame(self.main_frame, bg='black')
-        self.top_frame.pack(fill=tk.X, side=tk.TOP, padx=10, pady=10)
-        self.bottom_frame = tk.Frame(self.main_frame, bg='black')
-        self.bottom_frame.pack(fill=tk.BOTH, expand=True)
-        # แบ่ง bottom frame เป็น content_frame และ status_bar
-        self.content_frame = tk.Frame(self.bottom_frame, bg='black')
-        self.content_frame.pack(fill=tk.BOTH, expand=True, side=tk.TOP)
-        self.status_bar = tk.Frame(self.bottom_frame, bg='#333333', height=30)
-        self.status_bar.pack(fill=tk.X, side=tk.BOTTOM)
-        self.status_bar.pack_propagate(False)  # ทำให้มีความสูงคงที่
-        
-        self.top_frame_date = tk.Frame(self.top_frame, bg='black', width=600)
-        self.top_frame_date.pack(fill=tk.X, side=tk.LEFT, padx=10, pady=10)
-        #self.top_frame_time = tk.Frame(self.top_frame, bg='black')
-        #self.top_frame_time.pack(fill=tk.X, side=tk.CENTER, pady=20)
-        #self.top_frame_time.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-        self.top_frame_temp = tk.Frame(self.top_frame, bg='black')
-        self.top_frame_temp.pack(fill=tk.X, side=tk.RIGHT, pady=10)
-        # Create label for date
-        self.date_font = font.Font(family='Helvetica', size=50)
-        self.clock_font = font.Font(family='Helvetica', size=120, weight='bold')
-        self.temp_font = font.Font(family='Helvetica', size=70, weight='bold')
-        self.date_label = tk.Label(self.top_frame_date, font=self.date_font, bg='black', fg='orange')
-        self.date_label.pack(side=tk.LEFT,padx=(0, 5),expand=True, pady=(10, 0))
+        # ผูกปุ่ม ESC เพื่อออก, F11 เพื่อสลับโหมด
+        self.root.bind('<Escape>', self.exit_fullscreen)
+        self.root.bind('<F11>', self.toggle_fullscreen)
 
-        # Create label for time
-        self.time_label = tk.Label(self.top_frame_date, font=self.clock_font, bg='black', fg='white')
-        self.time_label.pack(expand=True, pady=(10, 0))
-        # Create label for temp humidary
-        self.temp_label = tk.Label(self.top_frame_temp, font=self.temp_font, bg='black', fg='white')
-        self.temp_label.pack(side=tk.LEFT,expand=True, pady=(10, 0))
-        self.humi_label = tk.Label(self.top_frame_temp, font=self.temp_font, bg='black', fg='white')
-        self.humi_label.pack(side=tk.RIGHT,expand=True, pady=(10, 0))
-        
-        # Initialize the DHT device (DHT22 or DHT11)
-        dht_device = adafruit_dht.DHT22(DHTPIN)
+        # คำนวณขนาดฟอนต์
+        time_font_size = int(screen_height / 5)
+        date_font_size = int(screen_height / 20)
+        temp_font_size = int(screen_height / 40)
 
-        # Update time immediately and then every second
+        self.clock_font = font.Font(family='Loma', size=time_font_size, weight='bold')
+        self.date_font = font.Font(family='Loma', size=date_font_size)
+        self.info_font = font.Font(family='Loma', size=int(date_font_size / 2))
+        self.temp_font = font.Font(family='Loma', size=temp_font_size)
+
+        # คำนวณตำแหน่งเป็น pixel จริง
+        center_x = screen_width // 2
+        time_y = int(time_font_size * 0.6)                        # เวลาอยู่บนสุด
+        date_y = time_y + int(time_font_size * 0.85)              # วันที่ห่างจากเวลา
+        temp_y = date_y
+
+        # Label เวลา
+        self.time_label = tk.Label(root, font=self.clock_font, bg='black', fg='#00FF00')
+        self.time_label.place(x=center_x, y=time_y, anchor='center')
+
+        # Label วันที่ - ชิดซ้าย
+        self.date_label = tk.Label(root, font=self.date_font, bg='black', fg='white')
+        self.date_label.place(x=20, y=date_y, anchor='w')
+
+        # Label อุณหภูมิ/ความชื้น - มุมขวาบน ระดับวันที่
+        self.temp_label = tk.Label(root, font=self.temp_font, bg='black', fg='#FFA500')
+        self.temp_label.place(relx=0.98, y=temp_y, anchor='e')
+        self.temp_label.config(text="T: --°C  H: --%")
+        # Label rain status - มุมขวาบน ระดับวันที่ ต่ำกว่าอุณหภูมิ
+        self.rain_label = tk.Label(root, font=self.temp_font, bg='black', fg='#00BFFF')
+        self.rain_label.place(relx=0.98, y=temp_y + int(temp_font_size * 1.8)+60, anchor='e')
+        self.rain_label.config(text="ฝน: --")
+
+        # Label งานที่ต้องทำ
+        task_font_size = int(screen_height / 22)
+        self.task_font = font.Font(family='Loma', size=task_font_size)
+
+        # ตำแหน่ง y ของแต่ละ task
+        task_y_start = date_y + int(date_font_size * 1.5) + int(task_font_size * 0.5)
+        task_spacing = int(task_font_size * 2.0)
+
+        self.task_label1 = tk.Label(
+            root, text="1.  ทำโคนต้นทุเรียน ต้นใหญ่", font=self.task_font,
+            bg='black', fg='#FFFFFF', anchor='w', justify='left'
+        )
+        self.task_label1.place(x=20, y=task_y_start, anchor='w')
+
+        self.task_label2 = tk.Label(
+            root, text="2.  ทำบ่อทุเรียน ขนหิน ทราย รอ ยี", font=self.task_font,
+            bg='black', fg='#FFFFFF', anchor='w', justify='left'
+        )
+        self.task_label2.place(x=20, y=task_y_start + task_spacing, anchor='w')
+
+        self.task_label3 = tk.Label(
+            root, text="3.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,
+            bg='black', fg='#FFFFFF', anchor='w', justify='left'
+        )
+        self.task_label3.place(x=20, y=task_y_start + task_spacing * 2, anchor='w')
+
+        self.task_label4 = tk.Label(
+            root, text="4.  เก็บเม็ด ต้นคูน เพาะแล้วปลูก", font=self.task_font,
+            bg='black', fg='#FFFFFF', anchor='w', justify='left'
+        )
+        self.task_label4.place(x=20, y=task_y_start + task_spacing * 3, anchor='w')
+
+        self.task_label5 = tk.Label(
+            root, text="5.  ต้องการเดินสาย Fiber ไปบ่อบน", font=self.task_font,
+            bg='black', fg='#FFFFFF', anchor='w', justify='left'
+        )
+        self.task_label5.place(x=20, y=task_y_start + task_spacing * 4, anchor='w')
+
+        # ตัวแปรสถานะ NTP
+        self.ntp_synced = False
+        self.last_ntp_sync = 0
+        self.ntp_offset = 0
+
+        # ซิงค์ NTP ครั้งแรก
+        self.sync_ntp()
+
+        # เริ่มอัปเดตเวลาและข้อมูล
         self.update_time()
-        self.update_temp_dht22()
-    def exit_fullscreen(self, event=None):
+        self.update_temp_from_db()
+        self.update_rain_status()
+
+    def update_rain_status(self):
+        """อัปเดตสถานะฝน"""
+        rain_status = self.get_rain_status_text()
+        self.rain_label.config(text=f"ฝน: {rain_status}")
+
+    def get_rain_status_text(self):
+        """
+        Query the database and return a Thai status string.
+        Never raises - returns a fallback message on error.
+        """
         try:
-            self.root.attributes("-fullscreen", False)
-            self.root.geometry("400x200")
+            conn = mysql.connector.connect(**db_config, connection_timeout=5)
+            cursor = conn.cursor()
+    
+            # 1. Check if currently raining (most recent decision)
+            cursor.execute("""            SELECT truly_raining             FROM t_rain_decision             ORDER BY id DESC             LIMIT 1        """)
+            latest = cursor.fetchone()
+    
+            if latest and latest[0] == 1:
+                cursor.close()
+                conn.close()
+                return "ฝนตกอยู่"  # raining right now
+    
+            # 2. Find the last time it was truly raining
+            cursor.execute("""            SELECT MAX(timestamp)              FROM t_rain_decision             WHERE truly_raining = 1        """)
+            result = cursor.fetchone()
+            #cursor.close()
+
+            cursor.execute(""" SELECT SUM(truly_raining) * 0.5 AS minutes_raining_yesterday, MIN(timestamp) AS first_rain, MAX(timestamp) AS last_rain FROM t_rain_decision WHERE DATE(timestamp) = CURDATE()   AND truly_raining = 1;        """)
+            resulttoday = cursor.fetchone()
+            #cursor.close()
+            cursor.execute(""" SELECT SUM(truly_raining) * 0.5 AS minutes_raining_yesterday, MIN(timestamp) AS first_rain, MAX(timestamp) AS last_rain FROM t_rain_decision WHERE DATE(timestamp) = CURDATE() - INTERVAL 1 DAY   AND truly_raining = 1;        """)
+            resultyesterday = cursor.fetchone()
+            cursor.close()
+
+            conn.close()
+    
+            if result is None or result[0] is None:
+                return "ยังไม่มีข้อมูลฝน"  # no rain data yet
+    
+            last_rain = result[0]
+            now = datetime.now()
+            delta = now - last_rain
+            days = delta.days
+    
+            if days == 0:#meaning it rained at least once today, so we can report the last rain time in a more user-friendly way
+                date1 = result[0]
+                if now.date() > date1.date():
+                    txtrain = "ฝนหยุดตกไปเมื่อ " + date1.strftime('%d %H:%M')
+                    if(resulttoday[0] is not None and resulttoday[0] > 0):
+                        txtrain += f"\n(ฝนตกไปแล้ว {resulttoday[0]:.1f} นาทีวันนี้)"
+                    if(resultyesterday[0] is not None and resultyesterday[0] > 0):
+                        txtrain += f"\n(ฝนตกไปแล้ว {resultyesterday[0]:.1f} นาทีเมื่อวาน)"
+                    return txtrain  # rain stopped today
+                else:
+                    txtrain = "ฝนหยุดวันนี้ " + date1.strftime('%H:%M') + " "
+                    if(resulttoday[0] is not None and resulttoday[0] > 0):
+                        txtrain += f"\n(วันนี้ ฝนตกไปแล้ว {resulttoday[0]:.1f} นาที)"
+                    if(resultyesterday[0] is not None and resultyesterday[0] > 0):
+                        txtrain += f"\n(เมื่อวาน ฝนตกไปแล้ว {resultyesterday[0]:.1f} นาที)"
+                    return txtrain  # rain stopped today
+            else:
+                return f"ฝนไม่ตกแล้ว {days} วัน"
+    
         except Exception as e:
-            print(f"Error exiting fullscreen: {e}")
-        return "break"
-    def get_ntp_time(self):
+            # Print so we see it in the console if running interactively
+            print(f"rain_status error: {e}")
+            return "อ่านข้อมูลไม่ได้"  # fail-safe on DB error
+    def update_temp_from_db(self):
+        """ดึงข้อมูลอุณหภูมิ/ความชื้นล่าสุดจากฐานข้อมูล"""
+        try:
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
+            cursor.execute("SELECT temperature, humidity, timestamp, sensor_device FROM t_sensor ORDER BY id DESC LIMIT 1")
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            if row:
+                temperature_c, humidity, timestamp, sensor_device = row
+                sensor1 = "" # แปลงชื่ออุปกรณ์เป็น sensor1, sensor2, etc.
+                if sensor_device == 'nw01_home01_DHT22_01':
+                    sensor1 = 'ครัว'
+                self.temp_label.config(text=f"T: {temperature_c:.1f}°C  H: {humidity:.1f}%  ({timestamp.strftime('%H:%M')})  [{sensor1}]")
+            else:
+                self.temp_label.config(text="T: N/A  H: N/A")
+        except Exception as e:
+            print(f"DB Error: {e}")
+            self.temp_label.config(text="T: Error  H: Error")
+
+        # อัปเดตทุก 5 วินาที
+        self.root.after(5000, self.update_temp_from_db)
+
+    def sync_ntp(self):
+        """ซิงค์เวลากับ NTP server"""
         try:
             ntp_client = ntplib.NTPClient()
-            response = ntp_client.request('pool.ntp.org')
-            utc_time = datetime.fromtimestamp(response.tx_time, pytz.UTC)
-            # Convert UTC to Thailand time (UTC+7)
-            thailand_tz = pytz.timezone('Asia/Bangkok')
-            thailand_time = utc_time.astimezone(thailand_tz)
-            return thailand_time
-        except:
-            # Fallback to system time if NTP fails
-            thailand_tz = pytz.timezone('Asia/Bangkok')
+            response = ntp_client.request('pool.ntp.org', timeout=3)
+            self.ntp_offset = response.tx_time - time.time()
+            self.ntp_synced = True
+            self.last_ntp_sync = time.time()
+            print("NTP sync สำเร็จ")
+        except Exception as e:
+            self.ntp_synced = False
+            self.last_ntp_sync = time.time()
+            print(f"NTP sync ไม่สำเร็จ: {e}")
+
+    def get_current_time(self):
+        """ดึงเวลาปัจจุบัน"""
+        thailand_tz = pytz.timezone('Asia/Bangkok')
+        if self.ntp_synced:
+            current_timestamp = time.time() + self.ntp_offset
+            return datetime.fromtimestamp(current_timestamp, thailand_tz)
+        else:
             return datetime.now(thailand_tz)
 
     def update_time(self):
-        # Get current time from NTP server
-        current_time = self.get_ntp_time()
-        
-        # Update time label
+        # ซิงค์ NTP ใหม่ทุก 10 นาที
+        if time.time() - self.last_ntp_sync > 600:
+            self.sync_ntp()
+
+        current_time = self.get_current_time()
+
+        # อัปเดตเวลา
         time_string = current_time.strftime('%H:%M:%S')
         self.time_label.config(text=time_string)
-        
-        # Update date label
-        date_string = current_time.strftime('%d-%m-%Y')
+
+        # ตารางสีประจำวัน (เริ่มจากวันจันทร์ = 0)
+        day_colors = {
+            0: '#FFD700',  # จันทร์ - เหลืองทอง
+            1: '#FF69B4',  # อังคาร - ชมพู
+            2: '#00CC00',  # พุธ - เขียว
+            3: '#FF8C00',  # พฤหัสบดี - ส้ม
+            4: '#00BFFF',  # ศุกร์ - ฟ้า
+            5: '#9370DB',  # เสาร์ - ม่วง
+            6: '#FF0000',  # อาทิตย์ - แดง
+        }
+        # เปลี่ยนสีเวลาตามวัน
+        self.time_label.config(fg=day_colors[current_time.weekday()])
+
+        # อัปเดตวันที่ (ภาษาไทย พ.ศ.)
+        thai_days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์']
+        thai_months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+                       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+
+        day_name = thai_days[current_time.weekday()]
+        month_name = thai_months[current_time.month - 1]
+        thai_year = current_time.year + 543
+        date_string = f"วัน{day_name} {current_time.day} {month_name} {thai_year}"
         self.date_label.config(text=date_string)
-        
-        # Schedule next update
+
+        # อัปเดตทุก 1 วินาที
         self.root.after(1000, self.update_time)
-    def updat_temp_humi(self):
-        try:
-            temp = "T : "
-            self.temp_label.config(text=temp)
-            humi = "H : "
-            self.humi_label.config(text=humi)
-        except Exception as e:
-            print(f"Error exiting fullscreen: {e}")
-    def update_temp_dht22(self):
-        try:
-            temperature_c = self.dht_device.temperature
-            humidity = self.dht_device.humidity
-            if temperature_c is not None and humidity is not None:
-                temperature_f = temperature_c * (9 / 5) + 32
-                self.temp_label.config(text=f"T: {temperature_c:.1f}°c ")
-                self.humi_label.config(text=f"H: {humidity:.1f}%")
-            else:
-                self.temp_label.config(text="T: N/A")
-                self.humi_label.config(text="H: N/A")
-        except RuntimeError as e:
-            # Reading doesn't always work! Just print error and we'll try again next time.
-            print(f"DHT Reading Error: {e}")
-            self.temp_label.config(text="T: Error ")
-            self.humi_label.config(text="H: Error")
-        self.root.after(2000, self.update_temp_dht22)
+
+    def toggle_fullscreen(self, event=None):
+        is_fullscreen = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not is_fullscreen)
+
+    def exit_fullscreen(self, event=None):
+        self.root.attributes('-fullscreen', False)
+        self.root.quit()
+
+
 if __name__ == "__main__":
     root = tk.Tk()
     clock = DigitalClock(root)
-    root.mainloop() 
+    root.mainloop()
