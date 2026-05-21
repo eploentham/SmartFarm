@@ -184,7 +184,7 @@ class DigitalClock:
                 else:
                     txtrain = "ฝนหยุดวันนี้ " + date1.strftime('%d %H:%M') + " "
                     if(resulttoday[0] is not None and resulttoday[0] > 0):
-                        txtrain += f"\n(วันนี้ ฝนตกไปแล้ว {resulttoday[0]:.1f} นาที)"
+                        txtrain += f"\n(วันนี้ ฝนตกไปแล้ว {resulttoday[0]:.1f} นาที)."
                     else:
                         txtrain += "\n(วันนี้ ฝนยังไม่ตกเลย)"
                     if(resultyesterday[0] is not None and resultyesterday[0] > 0):
