@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 import pytz
 import mysql.connector
-
+# Last edited: 2026-05-19 by Ekapop P. (Added rain duration details)
 db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 """
@@ -120,7 +120,8 @@ class DigitalClock:
         """อัปเดตสถานะฝน"""
         rain_status = self.get_rain_status_text()
         self.rain_label.config(text=f"ฝน: {rain_status}")
-
+        # อัปเดตทุก 30 วินาที
+        self.root.after(5000, self.update_rain_status)
     def get_rain_status_text(self):
         """
         Query the database and return a Thai status string.
@@ -250,8 +251,8 @@ class DigitalClock:
             return datetime.now(thailand_tz)
 
     def update_time(self):
-        # ซิงค์ NTP ใหม่ทุก 10 นาที
-        if time.time() - self.last_ntp_sync > 600:
+        # ซิงค์ NTP ใหม่ทุก 30 นาที
+        if time.time() - self.last_ntp_sync > 1800:
             self.sync_ntp()
 
         current_time = self.get_current_time()
