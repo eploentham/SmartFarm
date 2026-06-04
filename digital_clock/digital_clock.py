@@ -74,31 +74,31 @@ class DigitalClock:
         task_spacing = int(task_font_size * 2.0)
 
         self.task_label1 = tk.Label(
-            root, text="1.  ทำโคนต้นทุเรียน ต้นใหญ่", font=self.task_font,
+            root, text="1.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,
             bg='black', fg='#FFFFFF', anchor='w', justify='left'
         )
         self.task_label1.place(x=20, y=task_y_start, anchor='w')
 
         self.task_label2 = tk.Label(
-            root, text="2.  ทำบ่อทุเรียน ขนหิน ทราย รอ ยี", font=self.task_font,
+            root, text="2.  เอาเกลือ3กระสอบที่ซื้อมา ปูที่บ่อบน", font=self.task_font,
             bg='black', fg='#FFFFFF', anchor='w', justify='left'
         )
         self.task_label2.place(x=20, y=task_y_start + task_spacing, anchor='w')
 
         self.task_label3 = tk.Label(
-            root, text="3.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,
+            root, text="3.  เก็บเม็ด ต้นคูน เพาะแล้วปลูก", font=self.task_font,
             bg='black', fg='#FFFFFF', anchor='w', justify='left'
         )
         self.task_label3.place(x=20, y=task_y_start + task_spacing * 2, anchor='w')
 
         self.task_label4 = tk.Label(
-            root, text="4.  เก็บเม็ด ต้นคูน เพาะแล้วปลูก", font=self.task_font,
+            root, text="4.  เม็ดทุเรียนขึ้นต้นแล้วหรือยัง", font=self.task_font,
             bg='black', fg='#FFFFFF', anchor='w', justify='left'
         )
         self.task_label4.place(x=20, y=task_y_start + task_spacing * 3, anchor='w')
 
         self.task_label5 = tk.Label(
-            root, text="5.  ต้องการเดินสาย Fiber ไปบ่อบน", font=self.task_font,
+            root, text="5.  จะทำยังไง ไม่ให้ ต้นคูน ถูกตัด ต้นยางนา ถูกตัด", font=self.task_font,
             bg='black', fg='#FFFFFF', anchor='w', justify='left'
         )
         self.task_label5.place(x=20, y=task_y_start + task_spacing * 4, anchor='w')

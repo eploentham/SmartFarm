@@ -1,0 +1,159 @@
+/* =====================================================
+ * Smart Farm Admin — custom theme
+ * Built on Bootstrap 5, with Sarabun for Thai readability.
+ * Color palette: leaf green primary, warm earth accents.
+ * =====================================================*/
+
+:root {
+  --sf-green: #2e7d4f;
+  --sf-green-dark: #1f5535;
+  --sf-green-light: #e8f3ec;
+  --sf-earth: #6d4c2e;
+  --sf-sky: #4a90b9;
+  --sf-cream: #faf7f0;
+  --sf-text: #2c2c2c;
+  --sf-muted: #7a7a7a;
+}
+
+* {
+  font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  background-color: var(--sf-cream);
+  color: var(--sf-text);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Bootstrap btn-success → use our leaf green */
+.btn-success {
+  background-color: var(--sf-green);
+  border-color: var(--sf-green);
+}
+.btn-success:hover, .btn-success:focus {
+  background-color: var(--sf-green-dark);
+  border-color: var(--sf-green-dark);
+}
+
+/* ----- navbar ----- */
+.sf-navbar {
+  background-color: var(--sf-green);
+  padding: 0.75rem 1rem;
+}
+.sf-navbar .navbar-brand,
+.sf-navbar .nav-link,
+.sf-navbar .navbar-text {
+  color: #fff !important;
+}
+.sf-navbar .nav-link {
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  margin: 0 2px;
+}
+.sf-navbar .nav-link.active,
+.sf-navbar .nav-link:hover {
+  background-color: var(--sf-green-dark);
+}
+
+/* ----- login page ----- */
+.login-bg {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--sf-green) 0%, var(--sf-green-dark) 100%);
+}
+.login-card {
+  background-color: #fff;
+  border-radius: 14px;
+  padding: 2.5rem 2rem;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+.login-logo {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+/* ----- dashboard cards ----- */
+.sf-card {
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  background-color: #fff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+a:has(.sf-card):hover .sf-card {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(46, 125, 79, 0.15);
+  border-color: var(--sf-green);
+}
+.sf-card-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+.sf-badge {
+  background-color: var(--sf-green-light);
+  color: var(--sf-green-dark);
+  font-weight: 500;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+}
+.sf-badge-light {
+  background-color: #f3f1eb;
+  color: #555;
+  font-weight: 400;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+}
+
+/* ----- table styling ----- */
+.sf-thead {
+  background-color: var(--sf-green-light);
+}
+.sf-thead th {
+  color: var(--sf-green-dark);
+  font-weight: 600;
+  border-bottom: 2px solid var(--sf-green);
+}
+.table-hover tbody tr:hover {
+  background-color: var(--sf-green-light);
+}
+
+/* ----- empty state ----- */
+.empty-state {
+  background: #fff;
+  border-radius: 12px;
+  border: 2px dashed #d4d4d4;
+}
+
+/* ----- form inputs ----- */
+.form-control, .form-select {
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #d4d4d4;
+  padding: 0.6rem 0.85rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--sf-green);
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 79, 0.15);
+}
+.form-control-lg {
+  font-size: 1.1rem;
+  padding: 0.7rem 1rem;
+}
+.form-label {
+  margin-bottom: 0.35rem;
+}
+
+/* Big farmer-friendly buttons */
+.btn-lg {
+  padding: 0.7rem 1.6rem;
+  font-size: 1.05rem;
+  border-radius: 8px;
+}
+
+/* ----- responsive niceties ----- */
+@media (max-width: 768px) {
+  body { font-size: 17px; }   /* slightly bigger on mobile */
+  .btn-lg { width: 100%; margin-bottom: 0.5rem; }
+}

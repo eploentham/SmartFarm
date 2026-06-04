@@ -1,0 +1,98 @@
+<%- include('../partials/head', { title: (mode === 'new' ? 'เพิ่ม' : 'แก้ไข') + ' ' + cfg.label_th }) %>
+<%- include('../partials/navbar') %>
+
+<div class="container">
+  <div class="d-flex align-items-center mb-4">
+    <a href="/master/<%= tableName %>" class="btn btn-outline-secondary me-3">← กลับ</a>
+    <div>
+      <h3 class="mb-0">
+        <%= cfg.icon %>
+        <%= mode === 'new' ? 'เพิ่ม' : 'แก้ไข' %>
+        <%= cfg.label_th %>
+        <% if (mode === 'edit') { %><span class="text-muted">#<%= row.id %></span><% } %>
+      </h3>
+      <p class="text-muted mb-0"><%= cfg.label_en %></p>
+    </div>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+
+  <div class="card sf-card">
+    <div class="card-body">
+      <form action="/master/<%= tableName %><%= mode === 'edit' ? '/' + row.id : '' %>" method="POST">
+        <% cfg.fields.forEach(function(f) {
+             var val = row[f.name];
+             var setVals = (f.type === 'set' && val) ? String(val).split(',') : [];
+             var options = (f.type === 'fk' && typeof fkOptions !== 'undefined') ? (fkOptions[f.name] || []) : [];
+        %>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              <%= f.label %>
+              <% if (f.required) { %><span class="text-danger">*</span><% } %>
+            </label>
+
+            <% if (f.type === 'textarea') { %>
+              <textarea name="<%= f.name %>" rows="3" class="form-control"
+                <%= f.required ? 'required' : '' %>><%= val == null ? '' : val %></textarea>
+
+            <% } else if (f.type === 'enum') { %>
+              <select name="<%= f.name %>" class="form-select" <%= f.required ? 'required' : '' %>>
+                <option value="">- เลือก -</option>
+                <% f.options.forEach(function(opt) { %>
+                  <option value="<%= opt %>" <%= String(val) === String(opt) ? 'selected' : '' %>><%= opt %></option>
+                <% }); %>
+              </select>
+
+            <% } else if (f.type === 'fk') { %>
+              <select name="<%= f.name %>" class="form-select" <%= f.required ? 'required' : '' %>>
+                <option value="">- เลือก -</option>
+                <% options.forEach(function(opt) { %>
+                  <option value="<%= opt.value %>" <%= String(val) === String(opt.value) ? 'selected' : '' %>>
+                    <%= opt.display %><% if (opt.display2) { %> &middot; <%= opt.display2 %><% } %>
+                  </option>
+                <% }); %>
+              </select>
+
+            <% } else if (f.type === 'set') { %>
+              <select name="<%= f.name %>" class="form-select" multiple size="5">
+                <% f.options.forEach(function(opt) { %>
+                  <option value="<%= opt %>" <%= setVals.indexOf(opt) >= 0 ? 'selected' : '' %>><%= opt %></option>
+                <% }); %>
+              </select>
+              <div class="form-text">กด Ctrl (หรือ Cmd) ค้างเพื่อเลือกหลายค่า</div>
+
+            <% } else if (f.type === 'boolean') { %>
+              <div class="form-check form-switch fs-5">
+                <input type="checkbox" name="<%= f.name %>" value="1"
+                       class="form-check-input"
+                       <%= (val === 1 || val === '1' || val === true) ? 'checked' : '' %>>
+              </div>
+
+            <% } else if (f.type === 'number') { %>
+              <input type="number" name="<%= f.name %>" value="<%= val == null ? '' : val %>"
+                     step="<%= f.step || 'any' %>" class="form-control"
+                     <%= f.required ? 'required' : '' %>>
+
+            <% } else { %>
+              <input type="text" name="<%= f.name %>" value="<%= val == null ? '' : val %>"
+                     class="form-control" <%= f.required ? 'required' : '' %>>
+            <% } %>
+
+            <% if (f.help) { %><div class="form-text"><%= f.help %></div><% } %>
+          </div>
+        <% }); %>
+
+        <div class="d-flex gap-2 mt-4">
+          <button type="submit" class="btn btn-success btn-lg">
+            💾 <%= mode === 'new' ? 'บันทึก' : 'บันทึกการแก้ไข' %>
+          </button>
+          <a href="/master/<%= tableName %>" class="btn btn-outline-secondary btn-lg">ยกเลิก</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

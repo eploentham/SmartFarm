@@ -1,0 +1,66 @@
+<%- include('partials/head', { title: 'หน้าหลัก - Smart Farm Admin' }) %>
+<%- include('partials/navbar') %>
+
+<%
+  // Group tables by their .group property; preserve group sort order
+  var GROUPS = TABLES.GROUPS || {};
+  var grouped = {};
+  Object.keys(TABLES).forEach(function(name) {
+    if (name === 'GROUPS') return;
+    var t = TABLES[name];
+    var g = t.group || 'other';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push({ name: name, ...t });
+  });
+  var sortedGroupKeys = Object.keys(grouped).sort(function(a, b) {
+    var oa = (GROUPS[a] && GROUPS[a].order) || 99;
+    var ob = (GROUPS[b] && GROUPS[b].order) || 99;
+    return oa - ob;
+  });
+%>
+
+<div class="container">
+  <div class="mb-4">
+    <h2 class="mb-1">ยินดีต้อนรับ 🌳</h2>
+    <p class="text-muted mb-0">เลือกตารางที่ต้องการจัดการ</p>
+  </div>
+
+  <% sortedGroupKeys.forEach(function(groupKey) {
+       var groupCfg = GROUPS[groupKey] || { label_th: groupKey, icon: '📁' };
+  %>
+    <div class="sf-section mb-5">
+      <div class="d-flex align-items-baseline mb-3">
+        <h4 class="sf-section-title mb-0">
+          <span class="sf-section-icon"><%= groupCfg.icon %></span>
+          <%= groupCfg.label_th %>
+        </h4>
+        <span class="text-muted ms-2 small"><%= groupCfg.label_en || '' %></span>
+      </div>
+
+      <div class="row g-4">
+        <% grouped[groupKey].forEach(function(t) { %>
+          <div class="col-md-6 col-lg-4 col-xl-3">
+            <a href="/master/<%= t.name %>" class="text-decoration-none">
+              <div class="card sf-card h-100">
+                <div class="card-body text-center">
+                  <div class="sf-card-icon"><%= t.icon %></div>
+                  <h5 class="card-title fw-bold mt-3 mb-1"><%= t.label_th %></h5>
+                  <p class="text-muted small mb-3"><%= t.label_en %></p>
+                  <span class="badge sf-badge">เปิดดู / เพิ่ม / แก้ไข</span>
+                </div>
+              </div>
+            </a>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  <% }); %>
+
+  <hr class="my-5">
+  <div class="text-center text-muted small">
+    <p class="mb-1">🌾 Smart Farm Master Data Admin</p>
+    <p class="mb-0">ระยะถัดไป: ตาราง mapping และ transaction logs (การพ่นยา / การวินิจฉัยโรค)</p>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

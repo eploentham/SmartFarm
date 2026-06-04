@@ -1,0 +1,97 @@
+<%- include('../partials/head', { title: title }) %>
+<%- include('../partials/navbar') %>
+
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-1">🌳 ชนิดพืช <small class="text-muted fs-6">Crops</small></h2>
+      <small class="text-muted">รายการชนิดพืชที่ปลูกในสวน</small>
+    </div>
+    <a href="/orchard/crops/new" class="btn btn-success">
+      ➕ เพิ่มชนิดพืชใหม่
+    </a>
+  </div>
+
+  <%# Flash messages %>
+  <% if (flash.success && flash.success.length) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      ✅ <%= flash.success.join(', ') %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+  <% if (flash.error && flash.error.length) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      ⚠️ <%= flash.error.join(', ') %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <%# Show-inactive toggle %>
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" id="showInactiveSwitch"
+      <%= showInactive ? 'checked' : '' %>
+      onchange="window.location.href = this.checked ? '?show_inactive=1' : '/orchard/crops'">
+    <label class="form-check-label" for="showInactiveSwitch">
+      แสดงรายการที่ปิดใช้งานด้วย
+    </label>
+  </div>
+
+  <% if (crops.length === 0) { %>
+    <div class="alert alert-info">
+      <strong>ยังไม่มีข้อมูลชนิดพืช</strong> —
+      <a href="/orchard/crops/new" class="alert-link">เพิ่มรายการแรก</a>
+    </div>
+  <% } else { %>
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>รหัส</th>
+            <th>ชื่อไทย</th>
+            <th>ชื่ออังกฤษ</th>
+            <th>สายพันธุ์</th>
+            <th>ชื่อวิทยาศาสตร์</th>
+            <th class="text-center">สถานะ</th>
+            <th class="text-end">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% crops.forEach(crop => { %>
+            <tr class="<%= crop.is_active ? '' : 'table-secondary text-muted' %>">
+              <td><code class="text-success-emphasis"><%= crop.crop_code %></code></td>
+              <td><strong><%= crop.name_th %></strong></td>
+              <td><%= crop.name_en %></td>
+              <td><%= crop.variety_th || '—' %></td>
+              <td><em><%= crop.scientific_name || '—' %></em></td>
+              <td class="text-center">
+                <% if (crop.is_active) { %>
+                  <span class="badge bg-success">เปิดใช้</span>
+                <% } else { %>
+                  <span class="badge bg-secondary">ปิดใช้</span>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <a href="/orchard/crops/<%= crop.id %>/edit"
+                   class="btn btn-sm btn-outline-primary">
+                  ✏️ แก้ไข
+                </a>
+                <form action="/orchard/crops/<%= crop.id %>/toggle" method="POST" class="d-inline"
+                  onsubmit="return confirm('<%= crop.is_active ? "ต้องการปิดใช้งานชนิดพืชนี้หรือไม่?" : "ต้องการเปิดใช้งานใหม่หรือไม่?" %>')">
+                  <button type="submit"
+                          class="btn btn-sm btn-outline-<%= crop.is_active ? 'warning' : 'success' %>">
+                    <%= crop.is_active ? '🚫 ปิดใช้' : '✓ เปิดใช้' %>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <small class="text-muted mt-2 d-block">
+      ทั้งหมด <strong><%= crops.length %></strong> รายการ
+    </small>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

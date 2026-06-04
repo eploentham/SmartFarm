@@ -1,0 +1,39 @@
+/* =====================================================
+ * Smart Farm Admin — additional styles for upgrade v2
+ * APPEND these to your existing public/css/style.css
+ * (or replace if you prefer)
+ * =====================================================*/
+
+/* ----- dashboard sections (grouped) ----- */
+.sf-section-title {
+  color: var(--sf-green-dark);
+  font-weight: 700;
+  font-size: 1.4rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 3px solid var(--sf-green);
+  display: inline-block;
+}
+.sf-section-icon {
+  font-size: 1.5rem;
+  margin-right: 0.4rem;
+}
+
+/* ----- navbar dropdown styling ----- */
+.sf-navbar .dropdown-menu {
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 0.4rem;
+}
+.sf-navbar .dropdown-item {
+  border-radius: 6px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 500;
+}
+.sf-navbar .dropdown-item.active {
+  background-color: var(--sf-green);
+  color: #fff;
+}
+.sf-navbar .dropdown-item:hover {
+  background-color: var(--sf-green-light);
+}

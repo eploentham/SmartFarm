@@ -1,0 +1,197 @@
+<%- include('../partials/head', { title: title }) %>
+<%- include('../partials/navbar') %>
+
+<main class="container py-4" style="max-width: 900px;">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/orchard/plots">🗺️ แปลงปลูก</a></li>
+      <li class="breadcrumb-item active" aria-current="page">
+        <%= mode === 'edit' ? 'แก้ไข' : 'เพิ่มใหม่' %>
+      </li>
+    </ol>
+  </nav>
+
+  <h2 class="mb-4">
+    <%= mode === 'edit' ? '✏️' : '➕' %> <%= title %>
+  </h2>
+
+  <% if (flash.error && flash.error.length) { %>
+    <div class="alert alert-danger">⚠️ <%= flash.error.join(', ') %></div>
+  <% } %>
+
+  <form method="POST"
+        action="/orchard/plots<%= mode === 'edit' ? '/' + plot.id : '' %>">
+
+    <%# Section 1: Basic Info %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light fw-bold">
+        📋 ข้อมูลพื้นฐาน
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">
+              รหัสแปลง <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="code"
+                   class="form-control text-uppercase font-monospace"
+                   value="<%= plot.code || '' %>"
+                   required maxlength="20"
+                   pattern="[A-Za-z0-9_\-]+"
+                   placeholder="DURIAN-A1">
+            <small class="form-text text-muted">เช่น DURIAN-A1, GUAVA-B2</small>
+          </div>
+          <div class="col-md-8 mb-3">
+            <label class="form-label">
+              ชนิดพืช <span class="text-danger">*</span>
+            </label>
+            <select name="crop_id" class="form-select" required>
+              <option value="">— เลือกชนิดพืช —</option>
+              <% crops.forEach(c => { %>
+                <option value="<%= c.id %>"
+                  <%= plot.crop_id == c.id ? 'selected' : '' %>>
+                  <%= c.crop_code %> · <%= c.name_th %> (<%= c.name_en %>)
+                </option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-7 mb-3">
+            <label class="form-label">
+              ชื่อแปลง (ไทย) <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="name_th" class="form-control"
+                   value="<%= plot.name_th || '' %>"
+                   required maxlength="100"
+                   placeholder="แปลงทุเรียนหมอนทอง A1">
+          </div>
+          <div class="col-md-5 mb-3">
+            <label class="form-label">ชื่อแปลง (อังกฤษ)</label>
+            <input type="text" name="name_en" class="form-control"
+                   value="<%= plot.name_en || '' %>"
+                   maxlength="100" placeholder="Durian Plot A1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Section 2: Sizing %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light fw-bold">
+        📏 ขนาดและจำนวน
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">
+              พื้นที่ (ไร่) <span class="text-danger">*</span>
+            </label>
+            <input type="number" name="area_rai" class="form-control text-end"
+                   value="<%= plot.area_rai || '' %>"
+                   required step="0.01" min="0" placeholder="12.50">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">จำนวนต้น</label>
+            <input type="number" name="tree_count" class="form-control text-end"
+                   value="<%= plot.tree_count || '' %>"
+                   step="1" min="0" placeholder="180">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">
+              ต้น/โคก
+              <small class="text-muted">(ทุเรียน = 3)</small>
+            </label>
+            <input type="number" name="trees_per_mound" class="form-control text-end"
+                   value="<%= plot.trees_per_mound || '' %>"
+                   step="1" min="1" placeholder="3">
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">ปีที่ปลูก (ค.ศ.)</label>
+            <input type="number" name="planted_year" class="form-control text-end"
+                   value="<%= plot.planted_year || '' %>"
+                   min="1900" max="2100" placeholder="2020">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Section 3: Location %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light fw-bold">
+        📍 พิกัดและขอบเขต
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Center Latitude</label>
+            <input type="number" name="center_lat" class="form-control"
+                   value="<%= plot.center_lat || '' %>"
+                   step="0.0000001" min="-90" max="90"
+                   placeholder="14.7551350">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Center Longitude</label>
+            <input type="number" name="center_lon" class="form-control"
+                   value="<%= plot.center_lon || '' %>"
+                   step="0.0000001" min="-180" max="180"
+                   placeholder="98.6463640">
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">ความสูง (เมตร)</label>
+            <input type="number" name="elevation_m" class="form-control text-end"
+                   value="<%= plot.elevation_m || '' %>"
+                   step="0.01" placeholder="120.50">
+          </div>
+        </div>
+
+        <% if (plot.center_lat && plot.center_lon) { %>
+          <div class="mb-3">
+            <a href="https://www.google.com/maps?q=<%= plot.center_lat %>,<%= plot.center_lon %>"
+               target="_blank" class="btn btn-sm btn-outline-secondary">
+              🗺️ ดูตำแหน่งปัจจุบันใน Google Maps
+            </a>
+          </div>
+        <% } %>
+
+        <div class="mb-2">
+          <label class="form-label">
+            GeoJSON Polygon
+            <small class="text-muted">— optional (สำหรับ drone geofence)</small>
+          </label>
+          <textarea name="boundary_geojson"
+                    class="form-control font-monospace small"
+                    rows="5"
+                    placeholder='{"type":"Polygon","coordinates":[[[98.646,14.755],[98.648,14.755],[98.648,14.757],[98.646,14.757],[98.646,14.755]]]}'><%= plot.boundary_geojson || '' %></textarea>
+          <small class="form-text text-muted">
+            GeoJSON polygon กำหนดขอบเขตการบินของ drone — ใส่หรือไม่ใส่ก็ได้
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <%# Section 4: Notes %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light fw-bold">
+        📝 หมายเหตุ
+      </div>
+      <div class="card-body">
+        <textarea name="notes_th" class="form-control" rows="3"
+                  placeholder="หมายเหตุเพิ่มเติม..."><%= plot.notes_th || '' %></textarea>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
+      <a href="/orchard/plots" class="btn btn-outline-secondary">← ยกเลิก</a>
+      <button type="submit" class="btn btn-primary btn-lg">
+        💾 <%= mode === 'edit' ? 'บันทึกการแก้ไข' : 'เพิ่มแปลงปลูก' %>
+      </button>
+    </div>
+  </form>
+</main>
+
+<%- include('../partials/foot') %>

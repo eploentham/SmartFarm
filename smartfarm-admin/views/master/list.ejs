@@ -1,0 +1,103 @@
+<%- include('../partials/head', { title: cfg.label_th + ' - Smart Farm Admin' }) %>
+<%- include('../partials/navbar') %>
+
+<div class="container">
+  <div class="d-flex flex-wrap align-items-center justify-content-between mb-4">
+    <div>
+      <h3 class="mb-0"><%= cfg.icon %> <%= cfg.label_th %></h3>
+      <p class="text-muted mb-0"><%= cfg.label_en %> &middot; <code><%= tableName %></code></p>
+    </div>
+    <a href="/master/<%= tableName %>/new" class="btn btn-success btn-lg">
+      ➕ เพิ่มข้อมูลใหม่
+    </a>
+  </div>
+
+  <% if (success) { %>
+    <div class="alert alert-success"><%= success %></div>
+  <% } %>
+  <% if (error) { %>
+    <div class="alert alert-danger"><%= error %></div>
+  <% } %>
+
+  <% if (rows.length === 0) { %>
+    <div class="empty-state text-center py-5">
+      <p class="display-6">📭</p>
+      <p class="text-muted">ยังไม่มีข้อมูล - คลิก <strong>เพิ่มข้อมูลใหม่</strong> เพื่อเริ่ม</p>
+    </div>
+  <% } else { %>
+    <% var fkFieldNames = cfg.fields.filter(function(f){ return f.type === 'fk'; }).map(function(f){ return f.name; }); %>
+    <div class="card sf-card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="sf-thead">
+            <tr>
+              <th style="width:60px;">ID</th>
+              <th><%= cfg.primary_display %></th>
+              <% if (cfg.secondary_display) { %><th><%= cfg.secondary_display %></th><% } %>
+              <th>รายละเอียด</th>
+              <% if (cfg.has_active_flag) { %><th style="width:80px;">สถานะ</th><% } %>
+              <th class="text-end" style="width:180px;">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(function(r) { %>
+              <tr<%= cfg.has_active_flag && r.is_active === 0 ? ' class="text-muted"' : '' %>>
+                <td class="fw-semibold">#<%= r.id %></td>
+                <td class="fw-semibold"><%= r[cfg.primary_display] || '-' %></td>
+                <% if (cfg.secondary_display) { %>
+                  <td class="text-muted"><%= r[cfg.secondary_display] || '-' %></td>
+                <% } %>
+                <td>
+                  <% var extras = [];
+                     // FK display names (e.g. manufacturer name instead of id)
+                     fkFieldNames.forEach(function(fkName) {
+                       var displayValue = r['__' + fkName + '_display__'];
+                       if (displayValue) extras.push('🔗 ' + displayValue);
+                     });
+                     if (r.frac_group) extras.push('FRAC ' + r.frac_group);
+                     if (r.irac_group) extras.push('IRAC ' + r.irac_group);
+                     if (r.code) extras.push(r.code);
+                     if (r.chemical_type) extras.push(r.chemical_type);
+                     if (r.formulation) extras.push(r.formulation);
+                     if (r.package_size) extras.push('📦 ' + r.package_size);
+                     if (r.severity_level) extras.push('ความรุนแรง: ' + r.severity_level);
+                     if (r.severity_in_th_orchards) extras.push('ความรุนแรง: ' + r.severity_in_th_orchards);
+                     if (r.bee_toxic === 1) extras.push('⚠️ พิษต่อผึ้ง');
+                     if (r.banned_in_th === 1) extras.push('🚫 ห้ามใช้ในไทย');
+                     if (r.organic_approved === 1) extras.push('✅ เกษตรอินทรีย์');
+                     if (r.website_url) extras.push('🌐 ' + r.website_url);
+                     if (r.product_url) extras.push('🛒 ลิงก์สินค้า');
+                  %>
+                  <% extras.forEach(function(e) { %>
+                    <span class="badge sf-badge-light me-1"><%= e %></span>
+                  <% }); %>
+                </td>
+                <% if (cfg.has_active_flag) { %>
+                  <td>
+                    <% if (r.is_active === 1) { %>
+                      <span class="badge bg-success">เปิด</span>
+                    <% } else { %>
+                      <span class="badge bg-secondary">ปิด</span>
+                    <% } %>
+                  </td>
+                <% } %>
+                <td class="text-end">
+                  <a href="/master/<%= tableName %>/<%= r.id %>/edit" class="btn btn-sm btn-outline-primary">
+                    ✏️ แก้ไข
+                  </a>
+                  <form action="/master/<%= tableName %>/<%= r.id %>/delete" method="POST" class="d-inline"
+                        onsubmit="return confirm('แน่ใจหรือไม่ว่าต้องการลบ #<%= r.id %> ?');">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ ลบ</button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-muted small mt-3 mb-0">รวม <strong><%= rows.length %></strong> รายการ</p>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

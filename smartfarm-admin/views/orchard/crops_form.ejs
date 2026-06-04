@@ -1,0 +1,89 @@
+<%- include('../partials/head', { title: title }) %>
+<%- include('../partials/navbar') %>
+
+<main class="container py-4" style="max-width: 720px;">
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/orchard/crops">🌳 ชนิดพืช</a></li>
+      <li class="breadcrumb-item active" aria-current="page">
+        <%= mode === 'edit' ? 'แก้ไข' : 'เพิ่มใหม่' %>
+      </li>
+    </ol>
+  </nav>
+
+  <h2 class="mb-4">
+    <%= mode === 'edit' ? '✏️' : '➕' %>
+    <%= title %>
+  </h2>
+
+  <% if (flash.error && flash.error.length) { %>
+    <div class="alert alert-danger">⚠️ <%= flash.error.join(', ') %></div>
+  <% } %>
+
+  <form method="POST"
+        action="/orchard/crops<%= mode === 'edit' ? '/' + crop.id : '' %>"
+        class="card shadow-sm p-4">
+
+    <div class="mb-3">
+      <label class="form-label">
+        รหัสพืช (CODE) <span class="text-danger">*</span>
+      </label>
+      <input type="text" name="crop_code"
+             class="form-control text-uppercase font-monospace"
+             value="<%= crop.crop_code || '' %>"
+             required maxlength="20"
+             pattern="[A-Za-z0-9_\-]+"
+             placeholder="DURIAN">
+      <small class="form-text text-muted">
+        ใช้ตัวอักษรอังกฤษ ตัวเลข หรือ _-/ — ระบบจะแปลงเป็นตัวพิมพ์ใหญ่อัตโนมัติ
+        <br>ตัวอย่าง: <code>DURIAN</code>, <code>GUAVA</code>, <code>WAXAPPLE</code>
+      </small>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label">ชื่อไทย <span class="text-danger">*</span></label>
+        <input type="text" name="name_th" class="form-control"
+               value="<%= crop.name_th || '' %>"
+               required maxlength="100" placeholder="ทุเรียน">
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label">ชื่ออังกฤษ <span class="text-danger">*</span></label>
+        <input type="text" name="name_en" class="form-control"
+               value="<%= crop.name_en || '' %>"
+               required maxlength="100" placeholder="Durian">
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">ชื่อวิทยาศาสตร์</label>
+      <input type="text" name="scientific_name" class="form-control fst-italic"
+             value="<%= crop.scientific_name || '' %>"
+             maxlength="150" placeholder="Durio zibethinus">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">สายพันธุ์/พันธุ์ปลูก</label>
+      <input type="text" name="variety_th" class="form-control"
+             value="<%= crop.variety_th || '' %>"
+             maxlength="100" placeholder="หมอนทอง, ก้านยาว, ชะนี">
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">หมายเหตุ</label>
+      <textarea name="notes_th" class="form-control" rows="3"
+                placeholder="หมายเหตุเพิ่มเติม..."><%= crop.notes_th || '' %></textarea>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+      <a href="/orchard/crops" class="btn btn-outline-secondary">
+        ← ยกเลิก
+      </a>
+      <button type="submit" class="btn btn-primary btn-lg">
+        💾 <%= mode === 'edit' ? 'บันทึกการแก้ไข' : 'เพิ่มชนิดพืช' %>
+      </button>
+    </div>
+  </form>
+</main>
+
+<%- include('../partials/foot') %>

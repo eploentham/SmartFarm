@@ -1,0 +1,57 @@
+<% if (currentUser) {
+     var GROUPS = TABLES.GROUPS || {};
+     var grouped = {};
+     Object.keys(TABLES).forEach(function(name) {
+       if (name === 'GROUPS') return;
+       var t = TABLES[name];
+       var g = t.group || 'other';
+       if (!grouped[g]) grouped[g] = [];
+       grouped[g].push({ name: name, ...t });
+     });
+     var sortedGroupKeys = Object.keys(grouped).sort(function(a, b) {
+       var oa = (GROUPS[a] && GROUPS[a].order) || 99;
+       var ob = (GROUPS[b] && GROUPS[b].order) || 99;
+       return oa - ob;
+     });
+%>
+<nav class="navbar navbar-expand-lg sf-navbar mb-4">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="/">🌳 Smart Farm Admin</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">หน้าหลัก</a>
+        </li>
+        <% sortedGroupKeys.forEach(function(groupKey) {
+             var groupCfg = GROUPS[groupKey] || { label_th: groupKey, icon: '📁' };
+             var anyActive = grouped[groupKey].some(function(t){ return currentPath.startsWith('/master/' + t.name); });
+        %>
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle <%= anyActive ? 'active' : '' %>" href="#" role="button"
+               data-bs-toggle="dropdown" aria-expanded="false">
+              <%= groupCfg.icon %> <%= groupCfg.label_th %>
+            </a>
+            <ul class="dropdown-menu">
+              <% grouped[groupKey].forEach(function(t) { %>
+                <li>
+                  <a class="dropdown-item <%= currentPath.startsWith('/master/' + t.name) ? 'active' : '' %>"
+                     href="/master/<%= t.name %>">
+                    <%= t.icon %> <%= t.label_th %>
+                  </a>
+                </li>
+              <% }); %>
+            </ul>
+          </li>
+        <% }); %>
+      </ul>
+      <form action="/logout" method="POST" class="d-flex">
+        <span class="navbar-text me-3">👤 <%= currentUser.username %></span>
+        <button type="submit" class="btn btn-outline-light btn-sm">ออกจากระบบ</button>
+      </form>
+    </div>
+  </div>
+</nav>
+<% } %>

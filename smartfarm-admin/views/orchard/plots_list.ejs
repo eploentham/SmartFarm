@@ -1,0 +1,135 @@
+<%- include('../partials/head', { title: title }) %>
+<%- include('../partials/navbar') %>
+
+<main class="container-fluid py-4" style="max-width: 1400px;">
+  <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-1">🗺️ แปลงปลูก <small class="text-muted fs-6">Plots</small></h2>
+      <small class="text-muted">รายการแปลงปลูกในสวน</small>
+    </div>
+    <a href="/orchard/plots/new" class="btn btn-success">
+      ➕ เพิ่มแปลงปลูกใหม่
+    </a>
+  </div>
+
+  <% if (flash.success && flash.success.length) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      ✅ <%= flash.success.join(', ') %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+  <% if (flash.error && flash.error.length) { %>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      ⚠️ <%= flash.error.join(', ') %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% } %>
+
+  <div class="form-check form-switch mb-3">
+    <input class="form-check-input" type="checkbox" id="showInactiveSwitch"
+      <%= showInactive ? 'checked' : '' %>
+      onchange="window.location.href = this.checked ? '?show_inactive=1' : '/orchard/plots'">
+    <label class="form-check-label" for="showInactiveSwitch">
+      แสดงรายการที่ปิดใช้งานด้วย
+    </label>
+  </div>
+
+  <% if (plots.length === 0) { %>
+    <div class="alert alert-info">
+      <strong>ยังไม่มีข้อมูลแปลงปลูก</strong> —
+      <a href="/orchard/plots/new" class="alert-link">เพิ่มแปลงแรก</a>
+    </div>
+  <% } else { %>
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>รหัส</th>
+            <th>ชื่อแปลง</th>
+            <th>พืช</th>
+            <th class="text-end">พื้นที่<br><small>(ไร่)</small></th>
+            <th class="text-end">จำนวนต้น</th>
+            <th>ปีปลูก</th>
+            <th>พิกัด</th>
+            <th class="text-center">สถานะ</th>
+            <th class="text-end">การจัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% plots.forEach(plot => { %>
+            <tr class="<%= plot.is_active ? '' : 'table-secondary text-muted' %>">
+              <td><code class="text-success-emphasis"><%= plot.code %></code></td>
+              <td>
+                <strong><%= plot.name_th %></strong>
+                <% if (plot.name_en) { %>
+                  <br><small class="text-muted"><%= plot.name_en %></small>
+                <% } %>
+              </td>
+              <td>
+                <% if (plot.crop_name_th) { %>
+                  <span class="badge bg-info text-dark"
+                        title="<%= plot.crop_name_en %>">
+                    <%= plot.crop_name_th %>
+                  </span>
+                <% } else { %>
+                  <span class="badge bg-danger">⚠️ ไม่พบพืช</span>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <%= plot.area_rai !== null && plot.area_rai !== undefined
+                    ? Number(plot.area_rai).toFixed(2) : '—' %>
+              </td>
+              <td class="text-end"><%= plot.tree_count || '—' %></td>
+              <td><%= plot.planted_year || '—' %></td>
+              <td>
+                <% if (plot.center_lat && plot.center_lon) { %>
+                  <a href="https://www.google.com/maps?q=<%= plot.center_lat %>,<%= plot.center_lon %>"
+                     target="_blank" class="text-decoration-none"
+                     title="เปิดใน Google Maps">
+                    📍 <small>
+                      <%= Number(plot.center_lat).toFixed(5) %>,<br>
+                      <%= Number(plot.center_lon).toFixed(5) %>
+                    </small>
+                  </a>
+                <% } else { %>
+                  <span class="text-muted">—</span>
+                <% } %>
+              </td>
+              <td class="text-center">
+                <% if (plot.is_active) { %>
+                  <span class="badge bg-success">เปิดใช้</span>
+                <% } else { %>
+                  <span class="badge bg-secondary">ปิดใช้</span>
+                <% } %>
+              </td>
+              <td class="text-end">
+                <a href="/orchard/plots/<%= plot.id %>/edit"
+                   class="btn btn-sm btn-outline-primary">
+                  ✏️ แก้ไข
+                </a>
+                <form action="/orchard/plots/<%= plot.id %>/toggle" method="POST" class="d-inline"
+                  onsubmit="return confirm('<%= plot.is_active ? "ต้องการปิดใช้งานแปลงนี้หรือไม่?" : "ต้องการเปิดใช้งานใหม่หรือไม่?" %>')">
+                  <button type="submit"
+                          class="btn btn-sm btn-outline-<%= plot.is_active ? 'warning' : 'success' %>"
+                          title="<%= plot.is_active ? 'ปิดใช้' : 'เปิดใช้' %>">
+                    <%= plot.is_active ? '🚫' : '✓' %>
+                  </button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <small class="text-muted mt-2 d-block">
+      ทั้งหมด <strong><%= plots.length %></strong> แปลง
+      &nbsp;|&nbsp;
+      รวมพื้นที่
+      <strong>
+        <%= plots.reduce((sum, p) => sum + (Number(p.area_rai) || 0), 0).toFixed(2) %>
+      </strong> ไร่
+    </small>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>
