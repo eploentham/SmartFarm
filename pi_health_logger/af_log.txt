@@ -1,0 +1,191 @@
+[5:12:35.952072364] [9955] [1;32m INFO [1;37mCamera [1;34mcamera_manager.cpp:330 [0mlibcamera v0.5.2+99-bfd68f78
+[5:12:35.962625124] [9959] [1;32m INFO [1;37mRPI [1;34mpisp.cpp:720 [0mlibpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
+[5:12:35.966762419] [9959] [1;32m INFO [1;37mIPAProxy [1;34mipa_proxy.cpp:180 [0mUsing tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[5:12:35.977245919] [9959] [1;32m INFO [1;37mCamera [1;34mcamera_manager.cpp:220 [0mAdding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[5:12:35.977268345] [9959] [1;32m INFO [1;37mRPI [1;34mpisp.cpp:1179 [0mRegistered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_C0
+WARNING: Capture will not make use of temporal denoise
+         Consider using the --zsl option for best results, for example:
+         rpicam-still --zsl -o /tmp/test_af2.jpg
+Made X/EGL preview window
+Made DRM preview window
+Preview window unavailable
+Mode selection for 2304:1296:12:P
+    SRGGB10_CSI2P,1536x864/0 - Score: 3400
+    SRGGB10_CSI2P,2304x1296/0 - Score: 1000
+    SRGGB10_CSI2P,4608x2592/0 - Score: 1900
+Stream configuration adjusted
+[5:12:35.997127983] [9955] [1;32m INFO [1;37mCamera [1;34mcamera.cpp:1215 [0mconfiguring streams: (0) 2304x1296-YUV420/sYCC (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[5:12:35.997247540] [9959] [1;32m INFO [1;37mRPI [1;34mpisp.cpp:1483 [0mSensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+#7 (0.00 fps) exp 7669.00 ag 1.12 dg 1.00
+#8 (30.01 fps) exp 7669.00 ag 1.12 dg 1.00
+#9 (30.01 fps) exp 7535.00 ag 1.12 dg 1.00
+#10 (30.01 fps) exp 7535.00 ag 1.12 dg 1.00
+#11 (30.01 fps) exp 7535.00 ag 1.12 dg 1.00
+#12 (30.01 fps) exp 7535.00 ag 1.12 dg 1.00
+#13 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#14 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#15 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#16 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#17 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#18 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#19 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#20 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#21 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#22 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#23 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#24 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#25 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#26 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#27 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#28 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#29 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#30 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#31 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#32 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#33 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#34 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#35 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#36 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#37 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#38 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#39 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#40 (30.00 fps) exp 7508.00 ag 1.12 dg 1.00
+#41 (30.02 fps) exp 7508.00 ag 1.12 dg 1.00
+#42 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#43 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#44 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#45 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#46 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#47 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#48 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#49 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#50 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#51 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#52 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#53 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#54 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#55 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#56 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#57 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#58 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#59 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#60 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#61 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#62 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#63 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#64 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#65 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#66 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#67 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#68 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#69 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#70 (30.00 fps) exp 7508.00 ag 1.12 dg 1.00
+#71 (30.02 fps) exp 7508.00 ag 1.12 dg 1.00
+#72 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#73 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#74 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#75 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#76 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#77 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#78 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#79 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#80 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#81 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#82 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#83 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#84 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#85 (30.02 fps) exp 7508.00 ag 1.12 dg 1.00
+#86 (30.00 fps) exp 7508.00 ag 1.12 dg 1.00
+#87 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#88 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#89 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#90 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#91 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#92 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#93 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#94 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#95 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#96 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#97 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#98 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#99 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#100 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#101 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#102 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#103 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#104 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#105 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#106 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#107 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#108 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#109 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#110 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#111 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#112 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#113 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#114 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#115 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#116 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#117 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#118 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#119 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#120 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#121 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#122 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#123 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#124 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#125 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#126 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#127 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#128 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#129 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#130 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#131 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#132 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#133 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#134 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#135 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#136 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#137 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#138 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#139 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#140 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#141 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#142 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#143 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#144 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#145 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#146 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#147 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#148 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#149 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#150 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#151 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#152 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#153 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#154 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#155 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#156 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#157 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#158 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#159 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#160 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#161 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#162 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#163 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#164 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#165 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#166 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#167 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#168 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#169 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#170 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+#171 (30.01 fps) exp 7508.00 ag 1.12 dg 1.00
+Mode selection for 4608:2592:12:P
+    SRGGB10_CSI2P,1536x864/0 - Score: 10600
+    SRGGB10_CSI2P,2304x1296/0 - Score: 8200
+    SRGGB10_CSI2P,4608x2592/0 - Score: 1000
+Stream configuration adjusted
+[5:12:41.849877554] [9955] [1;32m INFO [1;37mCamera [1;34mcamera.cpp:1215 [0mconfiguring streams: (0) 4608x2592-YUV420/sYCC (1) 4608x2592-BGGR_PISP_COMP1/RAW
+[5:12:41.853592790] [9959] [1;32m INFO [1;37mRPI [1;34mpisp.cpp:1483 [0mSensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 4608x2592-SBGGR10_1X10/RAW - Selected CFE format: 4608x2592-PC1B/RAW
+Still capture image received

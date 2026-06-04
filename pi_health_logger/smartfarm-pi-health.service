@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Farm - Raspberry Pi Health Logger
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/usr/bin/python3 /home/ekapop/smartfarm/pi_health_logger.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
