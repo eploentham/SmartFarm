@@ -1,0 +1,21 @@
+[Unit]
+Description=Spray Monitor — YOLO + Telegram + Gemini chemical logging
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm/spray_monitor
+EnvironmentFile=/home/ekapop/smartfarm/spray_monitor/.env
+ExecStart=/usr/bin/python3 spray_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+# Needed for OpenCV window on user's display
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+[Install]
+WantedBy=graphical.target
