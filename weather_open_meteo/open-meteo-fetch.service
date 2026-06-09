@@ -1,0 +1,12 @@
+[Unit]
+Description=Fetch Open-Meteo weather data for Thong Pha Phum orchard
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/usr/bin/python3 /home/ekapop/smartfarm/fetch_open_meteo.py
+StandardOutput=append:/home/ekapop/smartfarm/logs/open_meteo.service.log
+StandardError=append:/home/ekapop/smartfarm/logs/open_meteo.service.log

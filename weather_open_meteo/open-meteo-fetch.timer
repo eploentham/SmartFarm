@@ -1,0 +1,12 @@
+# /etc/systemd/system/open-meteo-fetch.timer
+[Unit]
+Description=Run Open-Meteo fetch every 30 min during daytime (6 AM-7 PM)
+Requires=open-meteo-fetch.service
+
+[Timer]
+OnBootSec=2min
+OnCalendar=*-*-* 06..19:00,30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
