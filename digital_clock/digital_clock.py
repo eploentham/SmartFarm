@@ -6,6 +6,7 @@ from datetime import datetime
 import pytz
 import mysql.connector
 # Last edited: 2026-05-19 by Ekapop P. (Added rain duration details)
+# Last edited: 2026-06-09 by Ekapop P. (Added Lightning, Wind detection API)
 db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 """
@@ -64,6 +65,23 @@ class DigitalClock:
         self.rain_label = tk.Label(root, font=self.temp_font, bg='black', fg='#00BFFF')
         self.rain_label.place(relx=0.98, y=temp_y + int(temp_font_size * 1.8)+90, anchor='e')
         self.rain_label.config(text="ฝน: --")
+        # Label สถานะแสง - มุมขวา ใต้ rain (รอเอียดข้อความหลายบรรทัด)
+        light_y = temp_y + int(temp_font_size * 1.8) + 90 + int(temp_font_size * 6.5)
+        self.light_label = tk.Label(
+            root, font=self.temp_font, bg='black', fg='#FFD700',
+            justify='right'
+        )
+        self.light_label.place(relx=0.98, y=light_y, anchor='e')
+        self.light_label.config(text="แสง: --")
+
+        # Label สถานะลม - ใต้ light
+        wind_y = light_y + int(temp_font_size * 4)
+        self.wind_label = tk.Label(
+            root, font=self.temp_font, bg='black', fg='#87CEEB',
+            justify='right'
+        )
+        self.wind_label.place(relx=0.98, y=wind_y, anchor='e')
+        self.wind_label.config(text="ลม: --")
 
         # Label งานที่ต้องทำ
         task_font_size = int(screen_height / 22)

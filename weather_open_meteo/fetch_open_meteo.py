@@ -31,7 +31,7 @@ ORCHARD_LAT = 14.755135
 ORCHARD_LON = 98.646364
 
 DB_CONFIG = {
-    'host':       '192.168.0.253',  # Replace with your actual MariaDB host IP
+    'host':       'localhost',  # Replace with your actual MariaDB host IP
     'user':       'ekapop',
     'password':   'Ekartc2c51*',   # TODO: move to .env file
     'database':   'smartfarm',
@@ -52,6 +52,9 @@ API_PARAMS = {
         'relative_humidity_2m',
         'et0_fao_evapotranspiration',
         'precipitation',
+        'wind_speed_10m',
+        'wind_direction_10m',
+        'wind_gusts_10m',
     ]),
     'daily': ','.join([
         'sunrise', 'sunset',
@@ -59,6 +62,9 @@ API_PARAMS = {
         'et0_fao_evapotranspiration',
         'precipitation_sum',
         'uv_index_max',
+        'wind_speed_10m_max', 
+        'wind_gusts_10m_max',  
+        'wind_direction_10m_dominant', 
     ]),
     'timezone':      'Asia/Bangkok',
     'forecast_days': 3,
@@ -94,8 +100,10 @@ def upsert_hourly(conn, data: dict) -> int:
         INSERT INTO t_weather_open_meteo_hourly
             (record_time, shortwave_radiation, direct_radiation, diffuse_radiation,
              cloud_cover, temperature_2m, relative_humidity_2m,
-             et0_fao, precipitation, is_forecast)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             et0_fao, precipitation,
+             wind_speed_10m, wind_direction_10m, wind_gusts_10m,
+             is_forecast)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
             shortwave_radiation   = VALUES(shortwave_radiation),
             direct_radiation      = VALUES(direct_radiation),
@@ -105,6 +113,9 @@ def upsert_hourly(conn, data: dict) -> int:
             relative_humidity_2m  = VALUES(relative_humidity_2m),
             et0_fao               = VALUES(et0_fao),
             precipitation         = VALUES(precipitation),
+            wind_speed_10m        = VALUES(wind_speed_10m),
+            wind_direction_10m    = VALUES(wind_direction_10m),
+            wind_gusts_10m        = VALUES(wind_gusts_10m),
             is_forecast           = VALUES(is_forecast),
             fetched_at            = CURRENT_TIMESTAMP
     """
@@ -123,6 +134,9 @@ def upsert_hourly(conn, data: dict) -> int:
             hourly['relative_humidity_2m'][i],
             hourly['et0_fao_evapotranspiration'][i],
             hourly['precipitation'][i],
+            hourly['wind_speed_10m'][i],
+            hourly['wind_direction_10m'][i],
+            hourly['wind_gusts_10m'][i],
             record_time > now,   # future = forecast, past = actual
         ))
 
@@ -142,17 +156,22 @@ def upsert_daily(conn, data: dict) -> int:
     sql = """
         INSERT INTO t_weather_open_meteo_daily
             (record_date, shortwave_radiation_sum, et0_fao_sum,
-             precipitation_sum, uv_index_max, sunrise, sunset, is_forecast)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+             precipitation_sum, uv_index_max,
+             wind_speed_max, wind_gusts_max, wind_direction_dominant,
+             sunrise, sunset, is_forecast)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
-            shortwave_radiation_sum = VALUES(shortwave_radiation_sum),
-            et0_fao_sum             = VALUES(et0_fao_sum),
-            precipitation_sum       = VALUES(precipitation_sum),
-            uv_index_max            = VALUES(uv_index_max),
-            sunrise                 = VALUES(sunrise),
-            sunset                  = VALUES(sunset),
-            is_forecast             = VALUES(is_forecast),
-            fetched_at              = CURRENT_TIMESTAMP
+            shortwave_radiation_sum  = VALUES(shortwave_radiation_sum),
+            et0_fao_sum              = VALUES(et0_fao_sum),
+            precipitation_sum        = VALUES(precipitation_sum),
+            uv_index_max             = VALUES(uv_index_max),
+            wind_speed_max           = VALUES(wind_speed_max),
+            wind_gusts_max           = VALUES(wind_gusts_max),
+            wind_direction_dominant  = VALUES(wind_direction_dominant),
+            sunrise                  = VALUES(sunrise),
+            sunset                   = VALUES(sunset),
+            is_forecast              = VALUES(is_forecast),
+            fetched_at               = CURRENT_TIMESTAMP
     """
 
     today = datetime.now().date()
@@ -168,6 +187,9 @@ def upsert_daily(conn, data: dict) -> int:
             daily['et0_fao_evapotranspiration'][i],
             daily['precipitation_sum'][i],
             daily['uv_index_max'][i],
+            daily['wind_speed_10m_max'][i],
+            daily['wind_gusts_10m_max'][i],
+            daily['wind_direction_10m_dominant'][i],
             sunrise_t,
             sunset_t,
             record_date > today,

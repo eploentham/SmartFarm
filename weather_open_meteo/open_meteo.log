@@ -1,0 +1,38 @@
+2026-06-09 12:39:44,059 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:40:08,031 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:40:18,113 - ERROR - DB error: (2003, "Can't connect to MySQL server on '192.168.1.253' (timed out)")
+2026-06-09 12:41:28,538 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:41:38,598 - ERROR - DB error: (2003, "Can't connect to MySQL server on '192.168.1.253' (timed out)")
+2026-06-09 12:49:15,765 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:49:25,825 - ERROR - DB error: (2003, "Can't connect to MySQL server on '192.168.1.253' (timed out)")
+2026-06-09 12:49:50,958 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:49:51,041 - INFO - Upserted 96 hourly rows
+2026-06-09 12:49:51,080 - INFO - Upserted 4 daily rows
+2026-06-09 12:49:51,081 - INFO - Done
+2026-06-09 12:50:11,784 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 12:50:11,879 - INFO - Upserted 96 hourly rows
+2026-06-09 12:50:11,922 - INFO - Upserted 4 daily rows
+2026-06-09 12:50:11,922 - INFO - Done
+2026-06-09 13:29:22,197 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 13:29:22,256 - INFO - Upserted 96 hourly rows
+2026-06-09 13:29:22,261 - INFO - Upserted 4 daily rows
+2026-06-09 13:29:22,261 - INFO - Done
+2026-06-09 13:30:13,197 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 13:30:13,275 - INFO - Upserted 96 hourly rows
+2026-06-09 13:30:13,281 - INFO - Upserted 4 daily rows
+2026-06-09 13:30:13,281 - INFO - Done
+2026-06-09 14:00:06,334 - ERROR - API fetch failed: 502 Server Error: Bad Gateway for url: https://api.open-meteo.com/v1/forecast?latitude=14.755135&longitude=98.646364&hourly=shortwave_radiation%2Cdirect_radiation%2Cdiffuse_radiation%2Ccloud_cover%2Ctemperature_2m%2Crelative_humidity_2m%2Cet0_fao_evapotranspiration%2Cprecipitation&daily=sunrise%2Csunset%2Cshortwave_radiation_sum%2Cet0_fao_evapotranspiration%2Cprecipitation_sum%2Cuv_index_max&timezone=Asia%2FBangkok&forecast_days=3&past_days=1
+2026-06-09 14:30:13,934 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 14:30:14,008 - INFO - Upserted 96 hourly rows
+2026-06-09 14:30:14,017 - INFO - Upserted 4 daily rows
+2026-06-09 14:30:14,017 - INFO - Done
+2026-06-09 15:00:15,589 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 15:00:15,671 - INFO - Upserted 96 hourly rows
+2026-06-09 15:00:15,673 - INFO - Upserted 4 daily rows
+2026-06-09 15:00:15,674 - INFO - Done
+2026-06-09 15:30:17,071 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 15:30:17,142 - ERROR - DB error: (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '...  -- include the 3 wind columns\n            wind_speed_10m      = VALUES(w...' at line 10")
+2026-06-09 15:47:10,570 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 15:47:10,618 - ERROR - DB error: (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '...  -- include the 3 wind columns\n            wind_speed_10m      = VALUES(w...' at line 10")
+2026-06-09 15:47:29,818 - INFO - Fetched OK. Grid cell at (14.727592, 98.62325), elevation 126.0m
+2026-06-09 15:47:29,871 - ERROR - DB error: (1064, "You have an error in your SQL syntax; check the manual that corresponds to your MariaDB server version for the right syntax to use near '...  -- include the 3 wind columns\n            wind_speed_10m      = VALUES(w...' at line 10")
