@@ -1,0 +1,15 @@
+[Unit]
+Description=FRAC Label Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/frac_bot
+ExecStart=/home/ekapop/frac_bot/frac_label/bin/python /home/ekapop/frac_bot/frac_label_bot.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
