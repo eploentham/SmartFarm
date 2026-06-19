@@ -66,7 +66,7 @@ class DigitalClock:
         self.rain_label.place(relx=0.98, y=temp_y + int(temp_font_size * 1.8)+90, anchor='e')
         self.rain_label.config(text="ฝน: --")
         # Label สถานะแสง - มุมขวา ใต้ rain (รอเอียดข้อความหลายบรรทัด)
-        light_y = temp_y + int(temp_font_size * 1.8) + 90 + int(temp_font_size * 6.5)
+        light_y = temp_y + int(temp_font_size * 1.8) + 90 + int(temp_font_size * 8.5)
         self.light_label = tk.Label(
             root, font=self.temp_font, bg='black', fg='#FFD700',
             justify='right'
@@ -75,7 +75,7 @@ class DigitalClock:
         self.light_label.config(text="แสง: --")
 
         # Label สถานะลม - ใต้ light
-        wind_y = light_y + int(temp_font_size * 4)
+        wind_y = light_y + int(temp_font_size * 5)+130
         self.wind_label = tk.Label(
             root, font=self.temp_font, bg='black', fg='#87CEEB',
             justify='right'
@@ -133,7 +133,7 @@ class DigitalClock:
         self.update_time()
         self.update_temp_from_db()
         self.update_rain_status()
-
+        self.update_weather_status()
     def update_rain_status(self):
         """อัปเดตสถานะฝน"""
         rain_status = self.get_rain_status_text()
@@ -221,6 +221,73 @@ class DigitalClock:
             # Print so we see it in the console if running interactively
             print(f"rain_status error: {e}")
             return "อ่านข้อมูลไม่ได้"  # fail-safe on DB error
+    def update_weather_status(self):
+        """ดึงสถานะแสง/ลม จาก views"""
+        try:
+            conn = mysql.connector.connect(**db_config, connection_timeout=5)
+            cursor = conn.cursor()
+
+            # แสงรายชั่วโมง (ล่าสุดที่เป็น actual)
+            cursor.execute("""
+                SELECT solar_wm2, light_level, plant_status, cloud_cover
+                FROM v_light_status_hourly
+                WHERE record_time <= NOW() AND is_forecast = 0
+                ORDER BY record_time DESC LIMIT 1
+            """)
+            light_row = cursor.fetchone()
+
+            # ลมรายชั่วโมง
+            cursor.execute("""
+                SELECT wind_kmh, gust_kmh, dir_compass, spray_decision, gust_assessment
+                FROM v_wind_status_hourly
+                WHERE record_time <= NOW() AND is_forecast = 0
+                ORDER BY record_time DESC LIMIT 1
+            """)
+            wind_row = cursor.fetchone()
+
+            # แสงรวมวันนี้
+            cursor.execute("""
+                SELECT solar_mj_day, overall, durian_status
+                FROM v_light_status_daily
+                WHERE record_date = CURDATE()
+                LIMIT 1
+            """)
+            daily_row = cursor.fetchone()
+
+            cursor.close()
+            conn.close()
+
+            # อัปเดต label แสง
+            if light_row:
+                solar, level, status, cloud = light_row
+                txt = f"แสง: {solar:.0f} W/m² ({level})"
+                txt += f"\n{status}  เมฆ: {cloud:.0f}%"
+                if daily_row:
+                    mj, overall, durian = daily_row
+                    txt += f"\nรวมวันนี้: {mj:.1f} MJ ({overall})"
+                    txt += f"\nทุเรียน: {durian}"
+                self.light_label.config(text=txt)
+            else:
+                self.light_label.config(text="แสง: ไม่มีข้อมูล")
+
+            # อัปเดต label ลม
+            if wind_row:
+                wind, gust, dir_c, spray, gust_a = wind_row
+                self.wind_label.config(
+                    text=f"ลม: {wind:.1f} km/h ({dir_c})  กระโชก: {gust:.1f}"
+                         f"\n{spray}"
+                         f"\nกระโชก: {gust_a}"
+                )
+            else:
+                self.wind_label.config(text="ลม: ไม่มีข้อมูล")
+
+        except Exception as e:
+            print(f"Weather status error: {e}")
+            self.light_label.config(text="แสง: Error")
+            self.wind_label.config(text="ลม: Error")
+
+        # อัปเดตทุก 5 นาที (ข้อมูลรายชั่วโมง)
+        self.root.after(300000, self.update_weather_status)
     def update_temp_from_db(self):
         """ดึงข้อมูลอุณหภูมิ/ความชื้นล่าสุดจากฐานข้อมูล"""
         try:
