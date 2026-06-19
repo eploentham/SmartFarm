@@ -1,0 +1,16 @@
+
+node_modules/
+dist/
+=======
+# Ignore a folder anywhere in the repo
+node_modules/
+__pycache__/
+# Ignore a specific file anywhere in the repo
+*.log
+*.env
+# IDE
+.vscode/
+.idea/
+.claude
+.vs
+
