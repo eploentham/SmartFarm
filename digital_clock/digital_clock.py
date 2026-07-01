@@ -67,34 +67,25 @@ class DigitalClock:
         self.rain_label.config(text="ฝน: --")
         # Label สถานะแสง - มุมขวา ใต้ rain (รอเอียดข้อความหลายบรรทัด)
         light_y = temp_y + int(temp_font_size * 1.8) + 90 + int(temp_font_size * 8.5)
-        self.light_label = tk.Label(
-            root, font=self.temp_font, bg='black', fg='#FFD700',
-            justify='right'
-        )
+        self.light_label = tk.Label(            root, font=self.temp_font, bg='black', fg='#FFD700',            justify='right'        )
         self.light_label.place(relx=0.98, y=light_y, anchor='e')
         self.light_label.config(text="แสง: --")
 
         # Label สถานะลม - ใต้ light
         wind_y = light_y + int(temp_font_size * 5)+130
-        self.wind_label = tk.Label(
-            root, font=self.temp_font, bg='black', fg='#87CEEB',
-            justify='right'
-        )
+        self.wind_label = tk.Label(            root, font=self.temp_font, bg='black', fg='#87CEEB',            justify='right'        )
         self.wind_label.place(relx=0.98, y=wind_y, anchor='e')
         self.wind_label.config(text="ลม: --")
 
         # Label งานที่ต้องทำ
-        task_font_size = int(screen_height / 22)
+        task_font_size = int(screen_height / 24)
         self.task_font = font.Font(family='Loma', size=task_font_size)
 
         # ตำแหน่ง y ของแต่ละ task
         task_y_start = date_y + int(date_font_size * 1.5) + int(task_font_size * 0.5)
         task_spacing = int(task_font_size * 2.0)
 
-        self.task_label1 = tk.Label(
-            root, text="1.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,
-            bg='black', fg='#FFFFFF', anchor='w', justify='left'
-        )
+        self.task_label1 = tk.Label(root, text="1.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,bg='black', fg='#FFFFFF', anchor='w', justify='left'        )
         self.task_label1.place(x=20, y=task_y_start, anchor='w')
 
         self.task_label2 = tk.Label(
@@ -380,7 +371,6 @@ class DigitalClock:
     def exit_fullscreen(self, event=None):
         self.root.attributes('-fullscreen', False)
         self.root.quit()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
