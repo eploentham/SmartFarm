@@ -16,7 +16,7 @@ import os
 # ---------------------------------------------------------------------------
 # API key comes from environment — never hard-code it in the file.
 #   export GEMINI_API_KEY="..."
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AQ.Ab8RN6JunVH1FBUFqb19Ge6Vvqj78IUihjgkHl5_Yk_JQ5U0fQ")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # Model string is configurable because Google renames Flash models often.
 # Confirm the current one in Google AI Studio before deploy.
