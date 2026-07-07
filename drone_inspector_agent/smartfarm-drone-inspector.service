@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Farm - Durian Drone Inspector Agent
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm/drone_inspector_agent
+ExecStart=/usr/bin/python3 /home/ekapop/smartfarm/drone_inspector_agent/drone_inspector_agent.py --loop
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
