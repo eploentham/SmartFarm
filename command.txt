@@ -12,3 +12,16 @@ WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) \
   rpicam-hello --camera 1 --timeout 0 --width 4608 --height 2592
 
 
+If you're not sure of the exact name:
+systemctl list-units --type=service | grep spray
+
+ดูว่า Monitor ต่อกับสาย HDMI อะไร
+wlr-randr | grep -E "^HDMI|Enabled"
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart digitalclock
+
+
+
+SELECT * FROM v_pi_health_hot_events ORDER BY recorded_at DESC LIMIT 50;

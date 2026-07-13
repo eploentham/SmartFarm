@@ -1,0 +1,29 @@
+# go2rtc.yaml — RTSP → browser gateway for the CCTV wall.
+#
+# Fill in each camera's IP, username, and password. Uses stream2 (the VIGI
+# SUB-stream, lower resolution) so the Pi only lightly decodes 6 feeds.
+# Switch to stream1 for a single full-HD view if you ever need it.
+#
+# Run:  ./go2rtc   (it reads ./go2rtc.yaml)  → web UI at http://<pi>:1984
+#
+# VIGI RTSP format (verified):  rtsp://USER:PASS@IP:554/stream2
+
+streams:
+  cam1: rtsp://admin:ekartc2c51*@192.168.0.251:554/stream2
+  cam2: rtsp://admin:ekartc2c51*@192.168.0.252:554/stream2
+  cam3: rtsp://admin:ekartc2c51*@192.168.0.253:554/stream2
+  cam4: rtsp://admin:ekartc2c51*@192.168.0.254:554/stream2
+  cam5: rtsp://admin:ekartc2c51*@192.168.0.255:554/stream2
+  cam6: rtsp://admin:ekartc2c51*@192.168.0.256:554/stream2
+
+# Listen on all interfaces so the Pi's browser (and your phone) can view it.
+api:
+  listen: ":1984"
+
+# WebRTC needs a UDP port open for the browser to connect.
+webrtc:
+  listen: ":8555"
+
+# Quieter logs once it's working.
+log:
+  level: info

@@ -1,44 +1,36 @@
 #!/bin/bash
-# run_kiosk.sh — spray dashboard fullscreen on the 55" TV (HDMI-A-1).
+# run_kiosk.sh — CCTV wall (tv_display.py) on the 55" TV (HDMI-A-1), via chromium.
 #
-# WHY XWayland: labwc can't reliably send a *fullscreen* window to a chosen
-# output, so we position the window by pixel coordinates instead. Chromium
-# honors --window-position ONLY under XWayland (x11), not Wayland ozone.
+# ONE-TIME prerequisite (removes the stale flag the wrapper injects):
+#   sudo sed -i 's/ --js-flags=--no-decommit-pooled-pages//' /usr/bin/chromium
 #
-# Start tv_display.py first, then run this.
+# Runs Chromium in the BACKGROUND and logs to /tmp/kiosk.log, so the terminal
+# stays free and you can look at the TV.
 
 export WAYLAND_DISPLAY=wayland-0
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 
-OUTPUT="HDMI-A-1"
 URL="http://localhost:5000"
+BROWSER=$(command -v chromium || command -v chromium-browser)
 
-# --- Read HDMI-A-1 position + current resolution from wlr-randr ------------
-geom=$(wlr-randr | awk -v out="$OUTPUT" '
-  $1==out {found=1; next}
-  found && /Position:/ {split($2,p,","); px=p[1]; py=p[2]}
-  found && /current/   {split($1,m,"x"); print px","py","m[1]","m[2]; exit}
-')
-IFS=',' read -r X Y W H <<< "$geom"
+# Arrange outputs: 55" TV at top-left (0,0), 24" to its right.
+wlr-randr --output HDMI-A-1 --pos 0,0    >/dev/null 2>&1
+wlr-randr --output HDMI-A-2 --pos 1920,0 >/dev/null 2>&1
 
-if [ -z "$X" ]; then
-  echo "Could not read $OUTPUT geometry from wlr-randr. Run 'wlr-randr' and check the name."
-  exit 1
-fi
-echo "Placing kiosk on $OUTPUT at ${X},${Y}, size ${W}x${H}"
+pkill -f "chromium.*localhost:5000" 2>/dev/null
+sleep 1
 
-# --- Launch Chromium under XWayland, positioned on HDMI-A-1 ----------------
-chromium-browser \
-  --app="$URL" \
-  --ozone-platform=x11 \
-  --window-position="${X},${Y}" \
-  --window-size="${W},${H}" \
-  --start-fullscreen \
+"$BROWSER" \
+  --ozone-platform=wayland \
+  --kiosk "$URL" \
+  --autoplay-policy=no-user-gesture-required \
+  --user-data-dir=/tmp/kiosk \
   --noerrdialogs \
   --disable-infobars \
   --incognito \
-  --check-for-update-interval=31536000
+  --check-for-update-interval=31536000 \
+  > /tmp/kiosk.log 2>&1 &
 
-# If --start-fullscreen lands on the wrong screen, remove that line: the
-# --window-position/--window-size already cover HDMI-A-1 exactly (borderless
-# via --app), so the window fills the TV without needing fullscreen.
+echo "Kiosk launched (PID $!). 👉 LOOK AT THE 55\" TV now (give it ~5 seconds)."
+echo "If nothing appears:   cat /tmp/kiosk.log   (paste it to me)"
+echo "To stop the kiosk:    pkill -f 'chromium.*localhost:5000'"
