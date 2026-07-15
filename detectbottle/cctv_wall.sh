@@ -12,8 +12,8 @@ USER="admin"
 PASS="Ekartc2c51*"                 # the VIGI password that worked (Ekartc5...)
 CAMS=(
   "192.168.0.251"
-  # "192.168.0.252"   # <- uncomment / add IPs as you install more cameras
-  # "192.168.0.253"
+  "192.168.0.250"   # <- uncomment / add IPs as you install more cameras
+  "192.168.0.249"
   # "192.168.0.254"
   # "192.168.0.255"
   # "192.168.0.256"
