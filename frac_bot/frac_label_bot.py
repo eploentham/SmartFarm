@@ -80,12 +80,11 @@ IRAC_CODE_COL = "irac_code"         # IRAC group code column in irac_insecticide
 APP_TABLE   = "t_chemical_application"
 APP_DATE_COL = "spray_date"
 APP_FUNGI_FK = "fungicide_id"       # FK -> frac_fungicide.id
-
+CHAT_TABLE  = "t_telegram_chat"          # NEW: chat log table
 # ---------------------------------------------------------------------------
-logging.basicConfig(
-    format="%(asctime)s  %(levelname)s  %(message)s",
-    level=logging.INFO,
-)
+logging.basicConfig(    format="%(asctime)s  %(levelname)s  %(message)s",    level=logging.INFO,)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
 log = logging.getLogger("frac_bot")
 
 prompt = """
@@ -93,13 +92,19 @@ You are an expert plant pathologist and an advanced agricultural AI vision syste
 Analyze the provided crop leaf image in detail.
 
 Your tasks:
-1. Examine the leaf surface for signs of plant diseases, particularly Algal Leaf Spot (จุดสนิม), fungal infections, or pest damage.
-2. If a disease is found, identify its name (prefer common names used in agriculture, e.g., 'Algal Leaf Spot (จุดสนิม)'). If healthy, set the name to "None".
-3. Evaluate the confidence score of your analysis based on visual evidence.
-4. Assess the severity level:
-   - "low": Few isolated spots (less than 10% area affected).
-   - "medium": Distinct spots spreading across the leaf (10% - 40% area affected), similar to Algal Leaf Spot patterns.
-   - "high": Extensive lesions, structural damage, or large merging brown patches (over 40% area affected).
+1. Examine the leaf for any signs of plant diseases (e.g., Algal Leaf Spot, Fungal infections like Mildew/Rust/Anthracnose, Bacterial Leaf Blight, or Viral infections).
+2. If a disease is detected:
+   - Identify the specific 'disease_name' (e.g., 'Anthracnose', 'Powdery Mildew'). If multiple, name the primary one. If healthy, set it to "None".
+   - Assess the 'severity_level' ('low', 'medium', 'high') based on the percentage of leaf area affected.
+3. In the 'recommended_chemical' field, provide the most effective treatment based on the disease type and severity:
+   - If 'disease_detected' is false, set it to "None".
+   - If 'severity_level' is low, prefer organic solutions (e.g., 'Bacillus subtilis (BS)', 'Trichoderma', or 'Neem oil').
+   - If 'severity_level' is medium or high, recommend the standard chemical active ingredient for that specific disease class:
+     * For Algal Leaf Spot: 'Copper Oxychloride' or 'Copper Hydroxide'
+     * For Fungal leaf spots/anthracnose: 'Difenoconazole', 'Azoxystrobin', or 'Mancozeb'
+     * For Powdery/Downy Mildew: 'Metalaxyl' or 'Hexaconazole'
+     * For Bacterial diseases: 'Copper compounds' or 'Kasugamycin'
+     * For Pests/Mites: Suggest appropriate insecticides/acaricides.
 
 Note: Output must strictly conform to the defined JSON schema. Do not include any conversational text or markdown code blocks in your final output.
 """
@@ -108,6 +113,7 @@ class CropAnalysisSchema(typing.TypedDict):
     disease_name: str
     confidence_score: float
     severity_level: str
+    recommended_chemical: typing.List[str]  # เพิ่มฟิลด์นี้สำหรับแนะนำสารเคมี/สารชีวภัณฑ์
 
 # ---------------------------------------------------------------------------
 # Database helpers (all read-only for now; fail soft so the picture is
@@ -119,8 +125,24 @@ def get_conn():
         charset="utf8mb4", cursorclass=pymysql.cursors.DictCursor,
         connect_timeout=5,
     )
-
-
+def log_chat(chat_id, worker, direction, msg_type,
+             text=None, image_path=None, meta=None):
+    """NEW: store one chat event into t_telegram_chat. Never crashes the bot."""
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                f"INSERT INTO {CHAT_TABLE} "
+                "(chat_id, worker, direction, msg_type, text_content, image_path, meta) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    str(chat_id), worker, direction, msg_type, text,
+                    str(image_path) if image_path else None,
+                    json.dumps(meta, ensure_ascii=False) if meta else None,
+                ),
+            )
+            conn.commit()
+    except Exception as e:
+        log.warning("chat log failed: %s", e)
 def lookup_worker_name(chat_id: int):
     """Return the worker name from m_worker, or None if not registered."""
     try:
@@ -134,7 +156,6 @@ def lookup_worker_name(chat_id: int):
     except Exception as e:
         log.warning("worker lookup failed: %s", e)
         return None
-
 
 def lookup_chemical(active_ingredient: str):
     """
@@ -214,7 +235,7 @@ def analyze_label(image_path: Path) -> dict:
         return json.loads(text)
     except json.JSONDecodeError:
         log.warning("Gemini did not return valid JSON: %s", text[:200])
-        return {"disease_detected": False, "disease_name": "", "confidence_score": 0.0, "severity_level": "low"}
+        return {"disease_detected": False, "disease_name": "", "confidence_score": 0.0, "severity_level": "low", "recommended_chemical": []}
 
 
 
@@ -247,30 +268,34 @@ def save_metadata(image_path: Path, meta: dict):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     name = lookup_worker_name(chat_id) or update.effective_user.first_name
-    await update.message.reply_text(
+    log_chat(chat_id, name, "in", "command", text="/start")
+    reply = (
         f"สวัสดีครับ {name} 👋\n"
         f"chat_id ของคุณคือ: {chat_id}\n\n"
-        "ถ่ายรูปฉลากขวดยาแล้วส่งมาได้เลยครับ "
-        "(ส่งเป็น 'ไฟล์' จะชัดที่สุด) "
-        "ผมจะเก็บรูปและตรวจ FRAC ให้"
+        "ถ่ายรูปใบพืชแล้วส่งมาได้เลยครับ "
+        "(ส่งเป็น 'ไฟล์' จะชัดที่สุด) ผมจะวิเคราะห์ให้"
     )
-
+    await update.message.reply_text(reply)
+    log_chat(chat_id, name, "out", "bot_reply", text=reply) 
 
 async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     worker = lookup_worker_name(chat_id) or update.effective_user.first_name
-
+    caption = (update.message.caption or "").strip()
     # Get the file: prefer document (full-res) over compressed photo
     if update.message.document:
         tg_file = await update.message.document.get_file()
+        in_type = "document"
     else:
         tg_file = await update.message.photo[-1].get_file()  # largest size
+        in_type = "photo"
 
     raw = bytes(await tg_file.download_as_bytearray())
 
     # 1) KEEP PICTURE
     image_path = save_image(raw, chat_id)
     log.info("saved %s (%d bytes)", image_path, len(raw))
+    log_chat(chat_id, worker, "in", in_type, text=caption or None, image_path=image_path)
     await update.message.reply_text("📥 รับรูปแล้ว กำลังวิเคราะห์ภาพ...")
 
     # 2) FRAC ANALYSIS
@@ -289,6 +314,7 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conf = parsed.get("confidence_score", 0.0)
     severity_level = parsed.get("severity_level", "low")
     disease_detected = parsed.get("disease_detected", False)
+    recommended_chemical = parsed.get("recommended_chemical", [])
 
     match = lookup_chemical(ai)
 
@@ -299,6 +325,8 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lines.append(f"🧪 สารออกฤทธิ์: {ai or '(อ่านไม่ออก)'}")
     lines.append(f"🤖 Gemini (มั่นใจ {conf:.0%})")
     lines.append(f"⚠️ ระดับความรุนแรง: {severity_level}")
+    if recommended_chemical:
+        lines.append(f"💊 แนะนำสารเคมี/ชีวภัณฑ์: {', '.join(recommended_chemical)}")
     rotation_warn = False
     if match:
         lines.append(f"🔖 พบในฐานข้อมูล: {match['kind']} | รหัส {match['code']}")
@@ -343,9 +371,13 @@ async def handle_image(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def fallback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "ส่ง 'รูปฉลากขวดยา' มาได้เลยครับ (พิมพ์ /start เพื่อดูวิธีใช้)"
-    )
+    chat_id = update.effective_chat.id
+    worker = lookup_worker_name(chat_id) or update.effective_user.first_name
+    log_chat(chat_id, worker, "in", "text", text=update.message.text)
+    reply = "ส่ง 'รูปฉลากขวดยา' มาได้เลยครับ (พิมพ์ /start เพื่อดูวิธีใช้)"
+    await update.message.reply_text(reply)
+    log_chat(chat_id, worker, "out", "bot_reply", text=reply)
+
 
 
 def main():
