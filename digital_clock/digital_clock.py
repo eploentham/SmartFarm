@@ -1,3 +1,6 @@
+import argparse
+import re
+import subprocess
 import tkinter as tk
 from tkinter import font
 import ntplib
@@ -7,6 +10,7 @@ import pytz
 import mysql.connector
 # Last edited: 2026-05-19 by Ekapop P. (Added rain duration details)
 # Last edited: 2026-06-09 by Ekapop P. (Added Lightning, Wind detection API)
+# Last edited: 2026-07-06 by Ekapop P. (Added get_display_geometry)
 db_config = {    'host': 'localhost',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 """
@@ -17,17 +21,67 @@ Possible return values:
   - "ยังไม่มีข้อมูลฝน"      when no rain has ever been recorded
   - "อ่านข้อมูลไม่ได้"      on database error (fail-safe)
 """
+def get_display_geometry(display_name):
+    """หาตำแหน่งและขนาดของจอที่ระบุจาก wlr-randr
+
+    Returns (x, y, width, height) for the requested display.
+    Falls back to (1920, 0, 1920, 1080) — the expected HDMI-A-2 position
+    on a typical dual-monitor pi5camera01 setup — if detection fails.
+    """
+    try:
+        result = subprocess.run(
+            ["wlr-randr"], capture_output=True, text=True, timeout=5,
+        )
+        output = result.stdout
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        print(f"⚠ wlr-randr not available — falling back to (1920,0) 1920x1080")
+        return (1920, 0, 1920, 1080)
+
+    # wlr-randr blocks start with a name at column 0, followed by indented details
+    blocks = re.split(r"\n(?=\S)", output)
+    for block in blocks:
+        if block.strip().startswith(display_name):
+            pos_match = re.search(r"Position:\s*(\d+),(\d+)", block)
+            active_mode = re.search(
+                r"(\d+)x(\d+)\s+px.*current", block, re.IGNORECASE,
+            )
+            any_mode = re.search(r"(\d+)x(\d+)\s+px", block)
+            mode_match = active_mode or any_mode
+
+            x = int(pos_match.group(1)) if pos_match else 0
+            y = int(pos_match.group(2)) if pos_match else 0
+            w = int(mode_match.group(1)) if mode_match else 1920
+            h = int(mode_match.group(2)) if mode_match else 1080
+            print(f"✓ Display {display_name}: {w}x{h} at ({x},{y})")
+            return (x, y, w, h)
+
+    print(f"⚠ Display '{display_name}' not found — using fallback (1920,0) 1920x1080")
+    return (1920, 0, 1920, 1080)
+
+
 class DigitalClock:
-    def __init__(self, root):
+    def __init__(self, root, target_display=None):
+        """
+        target_display: tuple (x, y, width, height) — position and size
+                        for the clock window. If None, uses the old
+                        full-screen-on-primary-display behavior.
+        """
         self.root = root
         self.root.title("Digital Clock")
         self.root.configure(bg='black')
 
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-
-        # ตั้งค่าให้แสดงเต็มหน้าจอ
-        self.root.attributes('-fullscreen', True)
+        if target_display is not None:
+            # Pinned to a specific display: use borderless positioned window
+            x, y, screen_width, screen_height = target_display
+            self.root.geometry(f"{screen_width}x{screen_height}+{x}+{y}")
+            self.root.overrideredirect(True)   # no title bar, no borders
+            self.root.attributes('-topmost', True)  # stay above other windows
+            self.root.focus_force()            # take keyboard focus so ESC works
+        else:
+            # Legacy behavior: fullscreen on the primary display
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            self.root.attributes('-fullscreen', True)
 
         # ผูกปุ่ม ESC เพื่อออก, F11 เพื่อสลับโหมด
         self.root.bind('<Escape>', self.exit_fullscreen)
@@ -67,34 +121,25 @@ class DigitalClock:
         self.rain_label.config(text="ฝน: --")
         # Label สถานะแสง - มุมขวา ใต้ rain (รอเอียดข้อความหลายบรรทัด)
         light_y = temp_y + int(temp_font_size * 1.8) + 90 + int(temp_font_size * 8.5)
-        self.light_label = tk.Label(
-            root, font=self.temp_font, bg='black', fg='#FFD700',
-            justify='right'
-        )
+        self.light_label = tk.Label(            root, font=self.temp_font, bg='black', fg='#FFD700',            justify='right'        )
         self.light_label.place(relx=0.98, y=light_y, anchor='e')
         self.light_label.config(text="แสง: --")
 
         # Label สถานะลม - ใต้ light
         wind_y = light_y + int(temp_font_size * 5)+130
-        self.wind_label = tk.Label(
-            root, font=self.temp_font, bg='black', fg='#87CEEB',
-            justify='right'
-        )
+        self.wind_label = tk.Label(            root, font=self.temp_font, bg='black', fg='#87CEEB',            justify='right'        )
         self.wind_label.place(relx=0.98, y=wind_y, anchor='e')
         self.wind_label.config(text="ลม: --")
 
         # Label งานที่ต้องทำ
-        task_font_size = int(screen_height / 22)
+        task_font_size = int(screen_height / 24)
         self.task_font = font.Font(family='Loma', size=task_font_size)
 
         # ตำแหน่ง y ของแต่ละ task
         task_y_start = date_y + int(date_font_size * 1.5) + int(task_font_size * 0.5)
         task_spacing = int(task_font_size * 2.0)
 
-        self.task_label1 = tk.Label(
-            root, text="1.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,
-            bg='black', fg='#FFFFFF', anchor='w', justify='left'
-        )
+        self.task_label1 = tk.Label(root, text="1.  ขี้ไก่ เอาลงสวน ทรงพุ่ม", font=self.task_font,bg='black', fg='#FFFFFF', anchor='w', justify='left'        )
         self.task_label1.place(x=20, y=task_y_start, anchor='w')
 
         self.task_label2 = tk.Label(
@@ -361,8 +406,7 @@ class DigitalClock:
 
         # อัปเดตวันที่ (ภาษาไทย พ.ศ.)
         thai_days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์', 'อาทิตย์']
-        thai_months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-                       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+        thai_months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
         day_name = thai_days[current_time.weekday()]
         month_name = thai_months[current_time.month - 1]
@@ -381,8 +425,25 @@ class DigitalClock:
         self.root.attributes('-fullscreen', False)
         self.root.quit()
 
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Digital clock with weather / rain / task display, "
+                    "pinnable to a specific HDMI display on the Pi 5."
+    )
+    parser.add_argument(
+        "--display",
+        default="HDMI-A-2",
+        help="Target display name (default: HDMI-A-2 = 24\" monitor on pi5camera01). "
+             "Pass 'auto' to use the old primary-display fullscreen behavior.",
+    )
+    args = parser.parse_args()
+
+    if args.display.lower() == "auto":
+        target = None
+        print("Using primary-display fullscreen (auto mode)")
+    else:
+        target = get_display_geometry(args.display)
+
     root = tk.Tk()
-    clock = DigitalClock(root)
+    clock = DigitalClock(root, target_display=target)
     root.mainloop()

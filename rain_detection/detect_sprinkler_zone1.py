@@ -40,11 +40,11 @@ from datetime import datetime
 
 # ===== CONFIG (change per file) =====
 LOCATION = "ORCHARD_ZONE_1"
-CAMERA_RTSP = "rtsp://admin:Pass123@192.168.1.251:554/stream1"
+CAMERA_RTSP = "rtsp://admin:Ekartc2c51*@192.168.0.251:554/stream1"
 CAMERA_NAME = "Zone 1 - Durian Area1"
 
 DB_CONFIG = {
-    'host': '192.168.1.253',
+    'host': '192.168.0.253',
     'user': 'ekapop',
     'password': 'Ekartc2c51*',   # See note below about security
     'database': 'smartfarm',

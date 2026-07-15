@@ -1,0 +1,29 @@
+wlr-randr
+python3 check_dual_camera.py --resolution 4608x2592
+sudo systemctl restart detect_spray.service
+
+เปลี่ยน จอ
+sudo wayvncctl --socket=/tmp/wayvnc/wayvncctl.sock output-set HDMI-A-1
+
+WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) \
+  rpicam-hello --camera 1 --timeout 0 --width 1920 --height 1080
+
+WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/$(id -u) \
+  rpicam-hello --camera 1 --timeout 0 --width 4608 --height 2592
+
+
+If you're not sure of the exact name:
+systemctl list-units --type=service | grep spray
+
+ดูว่า Monitor ต่อกับสาย HDMI อะไร
+wlr-randr | grep -E "^HDMI|Enabled"
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart digitalclock
+
+
+
+SELECT * FROM v_pi_health_hot_events ORDER BY recorded_at DESC LIMIT 50;
+
+mariadb-dump.exe -u ekapop -h 100.74.144.57 -p  --ssl=0 --default-character-set=utf8mb4 --routines  smartfarm > e:\backup\smartfarm202607014.sql

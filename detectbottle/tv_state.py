@@ -16,11 +16,12 @@ import tempfile
 from datetime import datetime
 
 STATE_PATH = os.environ.get(
-    "TV_STATE_PATH", "/home/pi/smartfarm/detectbottle/tv_state.json")
+    "TV_STATE_PATH", "/home/ekapop/smartfarm/detectbottle/tv_state.json")
 
-# The four render states the right pane understands.
+# The render states the right pane understands.
 IDLE = "idle"        # waiting, nothing happening
 READING = "reading"  # bottle captured, Gemini is processing
+RETRY = "retry"      # image not good — ask the worker to try again
 DONE = "done"        # extraction finished, show the data
 ERROR = "error"      # extraction failed, show raw photo + message
 
@@ -58,6 +59,13 @@ def set_idle():
 
 def set_reading(worker=None):
     write_state({"status": READING, "worker": worker})
+
+
+def set_retry(reason_th, reason_en, worker=None, image_url=None):
+    """Ask the worker to re-present the bottle (blurry / not visible)."""
+    write_state({"status": RETRY, "reason_th": reason_th,
+                 "reason_en": reason_en, "worker": worker,
+                 "image_url": image_url})
 
 
 def set_done(data: dict, match: dict, review_flag: str,
