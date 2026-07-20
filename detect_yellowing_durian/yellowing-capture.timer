@@ -1,0 +1,9 @@
+[Unit]
+Description=Run durian yellowing capture daily at 12:00
+
+[Timer]
+OnCalendar=*-*-* 10,11,12,13,14:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

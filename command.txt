@@ -27,3 +27,14 @@ sudo systemctl restart digitalclock
 SELECT * FROM v_pi_health_hot_events ORDER BY recorded_at DESC LIMIT 50;
 
 mariadb-dump.exe -u ekapop -h 100.74.144.57 -p  --ssl=0 --default-character-set=utf8mb4 --routines  smartfarm > e:\backup\smartfarm202607014.sql
+
+
+ps aux | grep -Ei "mpv|rpicam|libcamera|vlc|ffplay|ffmpeg|cctv|tv_display" | grep -v grep
+pkill -f mpv
+pkill -f cctv_wall
+
+# ดูว่ามี display/cctv service รันอยู่ไหม
+systemctl list-units --type=service --state=running | grep -Ei "cctv|display|mpv|camera"
+
+# ถ้าเจอ เช่น cctv_wall.service ให้ stop:
+sudo systemctl stop <ชื่อ_service>.service
