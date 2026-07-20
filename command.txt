@@ -38,3 +38,19 @@ systemctl list-units --type=service --state=running | grep -Ei "cctv|display|mpv
 
 # ถ้าเจอ เช่น cctv_wall.service ให้ stop:
 sudo systemctl stop <ชื่อ_service>.service
+
+
+curl -s "https://api.telegram.org/bot<8940796280:AAH5b1rk94Ujcj5aEJMfhwMEan5D_Xcaos0>/getUpdates" | head
+
+sudo systemctl edit --full frac-bot.service
+
+journalctl -u frac-bot.service -n 40 --no-pager
+
+# ดึงภาพเต็มความละเอียด ภาพนิ่ง มาไว้ดู ROI
+ffmpeg -rtsp_transport tcp \
+  -i "rtsp://admin:***@192.168.0.251:554/stream1" \
+  -ss 1 -frames:v 1 -q:v 2 \
+  /home/ekapop/smartfarm/roi_check_$(date +%H%M%S).jpg
+
+
+sudo systemctl restart yellowing-capture.service
