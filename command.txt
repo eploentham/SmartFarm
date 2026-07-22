@@ -54,3 +54,11 @@ ffmpeg -rtsp_transport tcp \
 
 
 sudo systemctl restart yellowing-capture.service
+
+find /mnt/camera/recordings -maxdepth 1 -type f -newermt "2026-7-01" -delete
+find /mnt/camera/recordings -maxdepth 1 -type f ! -newermt "2026-7-01" -delete
+
+
+config node ให้สามารถใช้งาน port 443 ได้ โดยไม่ต้อง sudo node app.js เป็น nopde app.js
+which node
+sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
