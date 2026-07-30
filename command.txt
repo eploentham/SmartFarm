@@ -39,6 +39,7 @@ systemctl list-units --type=service --state=running | grep -Ei "cctv|display|mpv
 # ถ้าเจอ เช่น cctv_wall.service ให้ stop:
 sudo systemctl stop <ชื่อ_service>.service
 
+
 cd detectbottle
 ./cctv_wall.sh
 
@@ -82,3 +83,28 @@ zcat ~/db_backups/smartfarm_20260728_012920.sql.gz \
 source ~/venv/yolo/bin/activate
 cd ~/smartfarm
 python scripts/xxx.py
+=======
+
+curl -s "https://api.telegram.org/bot<8940796280:AAH5b1rk94Ujcj5aEJMfhwMEan5D_Xcaos0>/getUpdates" | head
+
+sudo systemctl edit --full frac-bot.service
+
+journalctl -u frac-bot.service -n 40 --no-pager
+
+# ดึงภาพเต็มความละเอียด ภาพนิ่ง มาไว้ดู ROI
+ffmpeg -rtsp_transport tcp \
+  -i "rtsp://admin:***@192.168.0.251:554/stream1" \
+  -ss 1 -frames:v 1 -q:v 2 \
+  /home/ekapop/smartfarm/roi_check_$(date +%H%M%S).jpg
+
+
+sudo systemctl restart yellowing-capture.service
+
+find /mnt/camera/recordings -maxdepth 1 -type f -newermt "2026-7-01" -delete
+find /mnt/camera/recordings -maxdepth 1 -type f ! -newermt "2026-7-01" -delete
+
+
+config node ให้สามารถใช้งาน port 443 ได้ โดยไม่ต้อง sudo node app.js เป็น nopde app.js
+which node
+sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
+
