@@ -1,0 +1,20 @@
+[Unit]
+Description=SmartFarm water-pressure MQTT -> MariaDB logger
+After=network-online.target mariadb.service mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+# All config (MQTT broker/user/pass, DB creds, pressure thresholds) comes from
+# ~/smartfarm/config/.env, which config.py loads automatically. Same .env as
+# the pump-energy logger — single source of truth.
+ExecStart=/home/ekapop/venv/pzem/bin/python /home/ekapop/smartfarm/scripts/pressure_logger.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ekapop/smartfarm/logs/pressure.log
+StandardError=append:/home/ekapop/smartfarm/logs/pressure.log
+
+[Install]
+WantedBy=multi-user.target

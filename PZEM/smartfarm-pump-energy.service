@@ -1,0 +1,19 @@
+[Unit]
+Description=SmartFarm PZEM pump-energy MQTT -> MariaDB logger
+After=network-online.target mariadb.service mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm
+# All config (MQTT broker/user/pass, DB creds) comes from ~/smartfarm/config/.env,
+# which config.py loads automatically. Keep it the single source of truth.
+ExecStart=/home/ekapop/venv/pzem/bin/python /home/ekapop/smartfarm/scripts/pump_energy_logger.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ekapop/smartfarm/logs/pump-energy.log
+StandardError=append:/home/ekapop/smartfarm/logs/pump-energy.log
+
+[Install]
+WantedBy=multi-user.target

@@ -38,3 +38,47 @@ systemctl list-units --type=service --state=running | grep -Ei "cctv|display|mpv
 
 # ถ้าเจอ เช่น cctv_wall.service ให้ stop:
 sudo systemctl stop <ชื่อ_service>.service
+
+cd detectbottle
+./cctv_wall.sh
+
+
+compile + upload ในคำสั่งเดียว 
+arduino-cli.exe compile --fqbn esp32:esp32:esp32 --port COM6 --upload "C:\source\SmartFarm\PZEM\pzem_mqtt"
+
+arduino-cli.exe compile --fqbn esp32:esp32:esp32 --port 192.168.1.163 --upload "C:\source\SmartFarm\PZEM\pzem_mqtt"
+
+ip -br a        # shows interfaces, e.g. enp1s0, eno1, and current IPs
+ip r            # shows the gateway → the line "default via 192.168.0.1 ..."
+
+ls /etc/netplan/                              # find the existing file
+sudo nano /etc/netplan/50-cloud-init.yaml     # or whatever name is listed
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1s0:                       # <-- your real interface name from Step 1
+      dhcp4: no
+      addresses:
+        - 192.168.0.254/24        # the static IP you want (.254)
+      routes:
+        - to: default
+          via: 192.168.0.1        # your gateway from Step 1
+      nameservers:
+        addresses:
+          - 192.168.0.1
+          - 1.1.1.1
+
+sudo netplan apply
+sudo netplan try
+
+zcat ~/db_backups/smartfarm_20260728_012920.sql.gz \
+  | sed -E 's/DEFINER=`[^`]+`@`[^`]+`//g' \
+  > ~/db_backups/smartfarm_nodefiner.sql
+
+
+
+source ~/venv/yolo/bin/activate
+cd ~/smartfarm
+python scripts/xxx.py
