@@ -1,0 +1,14 @@
+[Unit]
+Description=Smartfarm worker activity daily digest (Telegram)
+After=network.target mariadb.service
+
+[Service]
+# oneshot: runs, sends the digest, then EXITS. systemd expects it to finish.
+# (The detector is Type=simple because it loops forever; this one does not.)
+Type=oneshot
+User=ekapop
+Group=ekapop
+WorkingDirectory=/home/ekapop/smartfarm/scripts
+ExecStart=/home/ekapop/venv/yolo/bin/python /home/ekapop/smartfarm/scripts/worker_activity_summary.py
+
+# No [Install] section: this service is started by the .timer, not enabled directly.

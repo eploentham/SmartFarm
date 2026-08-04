@@ -1,0 +1,11 @@
+[Unit]
+Description=Run smartfarm worker digest every day at 20:00
+
+[Timer]
+# 20:00 every day, server local time (make sure timezone = Asia/Bangkok).
+OnCalendar=*-*-* 20:00:00
+# If the machine was off at 20:00, run as soon as it comes back on.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
