@@ -1,0 +1,18 @@
+[Unit]
+Description=Smart Farm Admin Web Dashboard
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm-admin
+ExecStart=/usr/bin/node app.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
