@@ -51,14 +51,12 @@ for _cand in (Path(__file__).resolve().parent / ".env",
         load_dotenv(_cand)
         break
 
-
 def _env(*keys, default=None):
     for k in keys:
         v = os.getenv(k)
         if v not in (None, ""):
             return v
     return default
-
 
 # ======================================================================
 # CONFIG
@@ -123,19 +121,16 @@ def _stop(signum, _f):
 signal.signal(signal.SIGTERM, _stop)
 signal.signal(signal.SIGINT, _stop)
 
-
 # ======================================================================
 # Helpers
 # ======================================================================
 def within_active_hours(now: datetime) -> bool:
     return ACTIVE_START <= now.time() <= ACTIVE_END
 
-
 def to_gray_small(frame_bgr):
     """Small grayscale copy for the cheap motion check."""
     small = cv2.resize(frame_bgr, (320, 180))
     return cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
-
 
 def has_motion(prev_gray, curr_gray) -> bool:
     if prev_gray is None:
@@ -143,7 +138,6 @@ def has_motion(prev_gray, curr_gray) -> bool:
     diff = cv2.absdiff(prev_gray, curr_gray)
     changed = np.count_nonzero(diff > MOTION_DIFF_THRESH)
     return (changed / diff.size) >= MOTION_PIXEL_RATIO
-
 
 def save_snapshot(frame_bgr, when: datetime) -> str | None:
     try:
@@ -155,7 +149,6 @@ def save_snapshot(frame_bgr, when: datetime) -> str | None:
     except Exception as e:
         log.warning("Snapshot save failed: %s", e)
         return None
-
 
 class DB:
     """MariaDB wrapper with lazy reconnect (Pi 5 -> PN64 over LAN)."""
@@ -188,7 +181,6 @@ class DB:
                 log.warning("DB insert attempt %d failed: %s", attempt, e)
                 self.conn = None
         log.error("Giving up on this row (DB unreachable).")
-
 
 # ======================================================================
 # Main
@@ -288,13 +280,11 @@ def main():
         picam2.stop()
         log.info("Spray detector stopped safely.")
 
-
 def _sleep_remainder(loop_start: float):
     """Hold a steady ~PROCESS_INTERVAL_SEC cadence (keeps CPU idle between)."""
     remaining = PROCESS_INTERVAL_SEC - (time.time() - loop_start)
     if remaining > 0:
         time.sleep(remaining)
-
 
 if __name__ == "__main__":
     main()
