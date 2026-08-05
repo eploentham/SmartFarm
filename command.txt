@@ -108,3 +108,5 @@ config node ให้สามารถใช้งาน port 443 ได้ โ
 which node
 sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
 
+
+find . -maxdepth 1 -type f -name "*.jpg" -delete
