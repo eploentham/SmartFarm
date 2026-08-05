@@ -208,8 +208,7 @@ class DB:
             " sprayer_detected, confidence, snapshot_path) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s)"
         )
-        params = (camera_code, plot_id, detected_at, int(person_count),
-                  int(sprayer_detected), round(float(confidence), 3), snapshot_path)
+        params = (camera_code, plot_id, detected_at, int(person_count), int(sprayer_detected), round(float(confidence), 3), snapshot_path)
         for attempt in (1, 2):                 # try, reconnect once, try again
             try:
                 self._ensure()
@@ -308,16 +307,12 @@ def main():
                 last_snapshot_ts = loop_start
 
             db.insert_detection(
-                camera_code=CAMERA_CODE,
-                plot_id=PLOT_ID,
-                detected_at=detected_at,
+                camera_code=CAMERA_CODE,                plot_id=PLOT_ID,                detected_at=detected_at,
                 person_count=person_count,
                 sprayer_detected=0,   # TODO: wire the custom sprayer model later
-                confidence=top_conf,
-                snapshot_path=snapshot_path,
+                confidence=top_conf,                snapshot_path=snapshot_path,
             )
-            log.info("WORKER detected: count=%d conf=%.3f snap=%s",
-                     person_count, top_conf, snapshot_path or "-")
+            log.info("WORKER detected: count=%d conf=%.3f snap=%s", person_count, top_conf, snapshot_path or "-")
 
         _sleep_remainder(loop_start)
 
