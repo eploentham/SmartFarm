@@ -9,7 +9,7 @@ Rain Detection for Orchard - WITH DATABASE LOGGING
 - Designed for Raspberry Pi (SD card friendly)
 - Headless (no display window) - run as a systemd service
 """
-#update: 2026-07-01 user database name to smartfarm, and user to ekapop, password to Ekartc2c51*
+
 import cv2
 import numpy as np
 import time
@@ -23,13 +23,13 @@ import mysql.connector
 # =====================================================================
 
 # IMPORTANT: replace USERNAME, PASSWORD, and stream path for your camera.
-RTSP_URL = "rtsp://USERNAME:PASSWORD@192.168.0.252:554/stream1"
+RTSP_URL = "rtsp://admin:Ekartc2c51*@192.168.0.252:554/stream1"
 
 # Sensor identifier - follow naming convention from t_sensor
 SENSOR_DEVICE = "nw01_orchard01_camera_01"
 
 # Database - same credentials as mqtt.py
-DB_CONFIG = {    'host': '192.168.0.253',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
+DB_CONFIG = {    'host': '192.168.0.254',    'user': 'ekapop',    'password': 'Ekartc2c51*',    'database': 'smartfarm'}
 
 # Check interval in seconds
 CHECK_INTERVAL = 30
