@@ -62,7 +62,7 @@ DB_CONFIG = {
     "host":     _env("SMARTFARM_DB_HOST", "DB_HOST", default="127.0.0.1"),
     "port":     int(_env("SMARTFARM_DB_PORT", "DB_PORT", default="3306")),
     "user":     _env("SMARTFARM_DB_USER", "DB_USER", default="smartfarm_rw"),
-    "password": _env("SMARTFARM_DB_PASS", "DB_PASSWORD", default=""),
+    "password": _env("SMARTFARM_DB_PASSWORD", "DB_PASSWORD", default=""),
     "database": _env("SMARTFARM_DB_NAME", "DB_NAME", default="smartfarm"),
     "charset":  "utf8mb4",
 }
