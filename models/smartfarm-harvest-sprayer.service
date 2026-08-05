@@ -1,0 +1,18 @@
+# /etc/systemd/system/smartfarm-harvest-sprayer.service
+[Unit]
+Description=Harvest sprayer dataset (motion-gated) from CSI cam1
+After=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+Group=ekapop
+# ต้องอยู่ในกลุ่ม video ถึงเข้าถึงกล้องได้ (ปกติ ekapop อยู่แล้ว)
+SupplementaryGroups=video
+WorkingDirectory=/home/ekapop/smartfarm
+ExecStart=/home/ekapop/smartfarm/.venv/bin/python /home/ekapop/smartfarm/harvest_sprayer_csi_motion.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
