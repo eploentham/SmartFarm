@@ -27,6 +27,7 @@ import time
 import signal
 import logging
 from pathlib import Path
+from urllib.parse import quote
 from datetime import datetime, time as dtime
 
 import cv2
@@ -72,16 +73,21 @@ PLOT_ID     = "DURIAN-A1"           # must match m_plot.plot_code (or None)
 # --- RTSP source (VIGI C330I sub-stream = light + thermal-safe) ---
 # TP-Link VIGI: /stream1 = main (2304x1296), /stream2 = sub (640x480).
 # Use the SUB stream for detection — plenty for a "person in frame" check.
-RTSP_USER = _env("VIGI_USER", "RTSP_USER", default="CHANGE_ME")   # from .env
-RTSP_PASS = _env("VIGI_PASSWORD", "RTSP_PASS", default="CHANGE_ME")   # from .env
-RTSP_HOST = "192.168.0.251"                           # VIGI camera IP
-RTSP_URL  = f"rtsp://{RTSP_USER}:{RTSP_PASS}@{RTSP_HOST}:554/stream2"
+RTSP_USER = _env("RTSP_USER", default="admin")
+RTSP_PASS = _env("RTSP_PASSWORD", "RTSP_PASS", default="CHANGE_ME")   # from .env
+RTSP_HOST = _env("RTSP_HOST", default="192.168.0.251")               # VIGI camera IP
+RTSP_PATH = _env("RTSP_PATH", default="stream2")                     # sub=stream2, main=stream1
+# URL-encode user & pass so special chars (@ : / # & ?) don't break the URL.
+RTSP_URL  = (
+    f"rtsp://{quote(RTSP_USER, safe='')}:{quote(RTSP_PASS, safe='')}"
+    f"@{RTSP_HOST}:554/{RTSP_PATH}"
+)
 
 # --- YOLO model (OpenVINO-exported, runs on Intel iGPU) ---
 # Export once on PN64:
 #   yolo export model=yolo11n.pt format=openvino imgsz=320
 # -> creates ./yolo11n_openvino_model/  (a directory, not a .pt file)
-MODEL_PATH   = "/home/ekapop/smartfarm/models/yolo11s_openvino_model"
+MODEL_PATH   = "/home/ekapop/smartfarm/models/yolo11n_openvino_model"
 YOLO_DEVICE  = "intel:gpu"   # Intel iGPU via OpenVINO. Fallback: "cpu"
 IMG_SIZE     = 320           # small = cool. Enough for whole-person boxes.
 PERSON_CLASS = 0             # COCO class 0 = "person"
@@ -91,6 +97,11 @@ CONF_THRESHOLD = 0.45        # min confidence to count as a real person
 SAMPLE_INTERVAL_SEC = 15     # take one sample every N seconds (not real-time)
 MOTION_PIXEL_RATIO  = 0.010  # >=1.0% of pixels changed -> "there is movement"
 MOTION_DIFF_THRESH  = 25     # per-pixel diff level counted as "changed"
+
+# --- Stream resilience ---
+# A corrupt H.264 frame makes read() fail, but that does NOT mean the stream
+# is dead. Only reopen after this many failures IN A ROW (skip the rest).
+MAX_READ_FAILS = 10
 
 # --- Active hours (only watch while workers are around) ---
 # Daytime only: 08:00–17:00. Outside this window the detector releases the
@@ -109,13 +120,18 @@ DB_CONFIG = {
     # NOTE: this script INSERTs, so the user MUST have write privilege.
     # If your generic DB_USER is read-only (e.g. claude_readonly), add
     # WORKER_DB_USER=smartfarm_rw + WORKER_DB_PASSWORD=... to .env.
-    "host":     _env("SMARTFARM_DB_HOST", "DB_HOST", default="127.0.0.1"),
-    "port":     int(_env("SMARTFARM_DB_PORT", "DB_PORT", default="3306")),
-    "user":     _env("SMARTFARM_DB_USER", "DB_USER", default="smartfarm_rw"),
-    "password": _env("SMARTFARM_DB_PASSWORD", "DB_PASSWORD", default=""),
-    "database": _env("SMARTFARM_DB_NAME", "DB_NAME", default="smartfarm"),
+    "host":     _env("WORKER_DB_HOST", "DB_HOST", default="127.0.0.1"),
+    "port":     int(_env("WORKER_DB_PORT", "DB_PORT", default="3306")),
+    "user":     _env("WORKER_DB_USER", "DB_USER", default="smartfarm_rw"),
+    "password": _env("WORKER_DB_PASSWORD", "DB_PASSWORD", default=""),
+    "database": _env("WORKER_DB_NAME", "DB_NAME", default="smartfarm"),
     "charset":  "utf8mb4",
 }
+
+# NOTE: Real-time alerts are intentionally NOT here. Worker activity is a
+# non-security use case -> a once-a-day DIGEST (worker_activity_summary.py,
+# runs 20:00) reads this data and sends one Telegram summary. This script's
+# only job is: detect -> log to t_person_detection -> save snapshots.
 
 # ======================================================================
 # Logging (systemd/journalctl captures stdout)
@@ -146,8 +162,20 @@ def within_active_hours(now: datetime) -> bool:
 
 
 def open_stream() -> cv2.VideoCapture:
-    """Open the RTSP stream over TCP (more stable than UDP on farm Wi-Fi)."""
-    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
+    """
+    Open the RTSP stream over TCP with a SOCKET TIMEOUT so a stalled stream
+    makes read() fail in ~5s instead of blocking for minutes.
+      stimeout          = socket timeout in microseconds (5_000_000 = 5s)
+      max_delay         = tolerate reordering/jitter
+      reorder_queue_size= 0 -> don't wait to reorder packets (lower latency)
+    This is what lets us recover fast (like mpv does) instead of freezing.
+    """
+    os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = (
+        "rtsp_transport;tcp"
+        "|stimeout;5000000"
+        "|max_delay;500000"
+        "|reorder_queue_size;0"
+    )
     cap = cv2.VideoCapture(RTSP_URL, cv2.CAP_FFMPEG)
     # Keep the internal buffer tiny so we always read a FRESH frame.
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -208,7 +236,8 @@ class DB:
             " sprayer_detected, confidence, snapshot_path) "
             "VALUES (%s, %s, %s, %s, %s, %s, %s)"
         )
-        params = (camera_code, plot_id, detected_at, int(person_count), int(sprayer_detected), round(float(confidence), 3), snapshot_path)
+        params = (camera_code, plot_id, detected_at, int(person_count),
+                  int(sprayer_detected), round(float(confidence), 3), snapshot_path)
         for attempt in (1, 2):                 # try, reconnect once, try again
             try:
                 self._ensure()
@@ -237,6 +266,7 @@ def main():
     cap = None
     prev_gray = None
     last_snapshot_ts = 0.0
+    read_fails = 0
 
     log.info("Worker detector started | camera=%s plot=%s", CAMERA_CODE, PLOT_ID)
 
@@ -264,14 +294,24 @@ def main():
                 time.sleep(10)
                 continue
 
-        # 3) Grab one fresh frame.
+        # 3) Grab one frame. Tolerate transient decode hiccups: a corrupt
+        #    H.264 frame makes read() fail, but the stream is usually still
+        #    alive. Skip the bad frame and try again; only reopen the whole
+        #    stream after MAX_READ_FAILS failures IN A ROW (a real stall).
         ok, frame = cap.read()
         if not ok or frame is None:
-            log.warning("Frame read failed -> will reopen stream.")
-            cap.release()
-            cap = None
-            time.sleep(2)
+            read_fails += 1
+            if read_fails >= MAX_READ_FAILS:
+                log.warning("%d read fails in a row -> reopening stream.",
+                            read_fails)
+                cap.release()
+                cap = None
+                read_fails = 0
+                time.sleep(2)
+            # otherwise: just skip this frame, keep the stream open
+            _sleep_remainder(loop_start)
             continue
+        read_fails = 0   # a good frame resets the counter
 
         # 4) Motion gate — skip YOLO if nothing moved.
         curr_gray = to_gray_small(frame)
@@ -307,12 +347,16 @@ def main():
                 last_snapshot_ts = loop_start
 
             db.insert_detection(
-                camera_code=CAMERA_CODE,                plot_id=PLOT_ID,                detected_at=detected_at,
+                camera_code=CAMERA_CODE,
+                plot_id=PLOT_ID,
+                detected_at=detected_at,
                 person_count=person_count,
                 sprayer_detected=0,   # TODO: wire the custom sprayer model later
-                confidence=top_conf,                snapshot_path=snapshot_path,
+                confidence=top_conf,
+                snapshot_path=snapshot_path,
             )
-            log.info("WORKER detected: count=%d conf=%.3f snap=%s", person_count, top_conf, snapshot_path or "-")
+            log.info("WORKER detected: count=%d conf=%.3f snap=%s",
+                     person_count, top_conf, snapshot_path or "-")
 
         _sleep_remainder(loop_start)
 
