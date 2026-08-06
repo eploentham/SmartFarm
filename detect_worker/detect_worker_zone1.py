@@ -52,6 +52,8 @@ from ultralytics import YOLO
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(ENV_PATH)
 
+#print(f"Loaded .env from {ENV_PATH} (SMARTFARM_DB_PASSWORD is {'set' if os.getenv('SMARTFARM_DB_PASSWORD') else 'NOT set'})")
+#print(f"Loaded .env from {ENV_PATH}")
 
 def _env(*keys, default=None):
     """Return the first non-empty env var among `keys` (lets us fall back
@@ -75,14 +77,18 @@ PLOT_ID     = "DURIAN-A1"           # must match m_plot.plot_code (or None)
 # Use the SUB stream for detection — plenty for a "person in frame" check.
 RTSP_USER = _env("RTSP_USER", default="admin")
 RTSP_PASS = _env("RTSP_PASSWORD", "RTSP_PASS", default="CHANGE_ME")   # from .env
+#RTSP_PASS = "Ekartc2c51*"
 RTSP_HOST = _env("RTSP_HOST", default="192.168.0.251")               # VIGI camera IP
 RTSP_PATH = _env("RTSP_PATH", default="stream2")                     # sub=stream2, main=stream1
 # URL-encode user & pass so special chars (@ : / # & ?) don't break the URL.
+#RTSP_URL  = (
+#    f"rtsp://{quote(RTSP_USER, safe='')}:{quote(RTSP_PASS, safe='')}"
+#    f"@{RTSP_HOST}:554/{RTSP_PATH}"
+#)
 RTSP_URL  = (
-    f"rtsp://{quote(RTSP_USER, safe='')}:{quote(RTSP_PASS, safe='')}"
+    f"rtsp://{RTSP_USER}:{RTSP_PASS}"
     f"@{RTSP_HOST}:554/{RTSP_PATH}"
 )
-
 # --- YOLO model (OpenVINO-exported, runs on Intel iGPU) ---
 # Export once on PN64:
 #   yolo export model=yolo11n.pt format=openvino imgsz=320
@@ -120,11 +126,11 @@ DB_CONFIG = {
     # NOTE: this script INSERTs, so the user MUST have write privilege.
     # If your generic DB_USER is read-only (e.g. claude_readonly), add
     # WORKER_DB_USER=smartfarm_rw + WORKER_DB_PASSWORD=... to .env.
-    "host":     _env("WORKER_DB_HOST", "DB_HOST", default="127.0.0.1"),
-    "port":     int(_env("WORKER_DB_PORT", "DB_PORT", default="3306")),
-    "user":     _env("WORKER_DB_USER", "DB_USER", default="smartfarm_rw"),
-    "password": _env("WORKER_DB_PASSWORD", "DB_PASSWORD", default=""),
-    "database": _env("WORKER_DB_NAME", "DB_NAME", default="smartfarm"),
+    "host":     _env("SMARTFARM_DB_HOST", "DB_HOST", default="127.0.0.1"),
+    "port":     int(_env("SMARTFARM_DB_PORT", "DB_PORT", default="3306")),
+    "user":     _env("SMARTFARM_DB_USER", "DB_USER", default="smartfarm_rw"),
+    "password": _env("SMARTFARM_DB_PASSWORD", "DB_PASSWORD", default=""),
+    "database": _env("SMARTFARM_DB_NAME", "DB_NAME", default="smartfarm"),
     "charset":  "utf8mb4",
 }
 
@@ -142,7 +148,7 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 log = logging.getLogger("detect_worker")
-
+log.info("Loaded .env from %s", ENV_PATH)
 # Graceful shutdown flag, set by SIGTERM (systemd stop) / SIGINT (Ctrl-C)
 _running = True
 def _stop(signum, _frame):
@@ -256,7 +262,7 @@ class DB:
 # ======================================================================
 def main():
     if not DB_CONFIG["password"]:
-        log.error("WORKER_DB_PASSWORD is not set. Export it and restart.")
+        log.error("SMARTFARM_DB_PASSWORD is not set. Export it and restart.")
         sys.exit(1)
 
     log.info("Loading YOLO model: %s (device=%s)", MODEL_PATH, YOLO_DEVICE)
