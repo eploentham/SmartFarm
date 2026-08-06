@@ -166,7 +166,6 @@ def within_active_hours(now: datetime) -> bool:
     """True only between ACTIVE_START and ACTIVE_END (local time)."""
     return ACTIVE_START <= now.time() <= ACTIVE_END
 
-
 def open_stream() -> cv2.VideoCapture:
     """
     Open the RTSP stream over TCP with a SOCKET TIMEOUT so a stalled stream
@@ -186,7 +185,6 @@ def open_stream() -> cv2.VideoCapture:
     # Keep the internal buffer tiny so we always read a FRESH frame.
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     return cap
-
 
 def has_motion(prev_gray, curr_gray) -> bool:
     """
@@ -299,7 +297,9 @@ def main():
                 log.warning("Cannot open RTSP. Retry in 10s.")
                 time.sleep(10)
                 continue
-
+        # ทิ้ง 2-3 เฟรมแรก
+        for _ in range(3):
+            cap.read()
         # 3) Grab one frame. Tolerate transient decode hiccups: a corrupt
         #    H.264 frame makes read() fail, but the stream is usually still
         #    alive. Skip the bad frame and try again; only reopen the whole
@@ -363,7 +363,9 @@ def main():
             )
             log.info("WORKER detected: count=%d conf=%.3f snap=%s",
                      person_count, top_conf, snapshot_path or "-")
-
+        #   เพิ่ม ให้ clear rtsp stream ทุกครั้งหลังจาก detect worker เสร็จ
+        cap.release()
+        cap = None
         _sleep_remainder(loop_start)
 
     # Clean shutdown
@@ -371,14 +373,12 @@ def main():
         cap.release()
     log.info("Detector stopped.")
 
-
 def _sleep_remainder(loop_start: float):
     """Keep a steady SAMPLE_INTERVAL_SEC cadence regardless of work done."""
     elapsed = time.time() - loop_start
     remaining = SAMPLE_INTERVAL_SEC - elapsed
     if remaining > 0:
         time.sleep(remaining)
-
 
 if __name__ == "__main__":
     main()
