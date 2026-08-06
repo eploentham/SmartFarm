@@ -8,6 +8,13 @@ import time
 from datetime import datetime
 import pytz
 import mysql.connector
+#   systemctl list-units --all | grep -i clock
+# หรือหาไฟล์ service
+#   ls /etc/systemd/system/ | grep -i clock
+#pkill -f digital_clock.py
+#pkill -f mpv
+#pkill -f cctv_wall
+#   sudo wayvncctl --socket=/tmp/wayvnc/wayvncctl.sock output-set HDMI-A-1
 # Last edited: 2026-05-19 by Ekapop P. (Added rain duration details)
 # Last edited: 2026-06-09 by Ekapop P. (Added Lightning, Wind detection API)
 # Last edited: 2026-07-06 by Ekapop P. (Added get_display_geometry)

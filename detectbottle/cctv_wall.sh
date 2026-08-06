@@ -9,7 +9,7 @@
 
 # ===== EDIT THESE =====
 USER="admin"
-PASS="Ekartc2c51*"                 # the VIGI password that worked (Ekartc5...)
+PASS="xxx"                 # the VIGI password that worked (Ekartc5...)
 CAMS=(
   "192.168.0.251"
   # "192.168.0.252"   # <- uncomment / add IPs as you install more cameras
@@ -42,7 +42,8 @@ else                      cols=3; rows=2
 fi
 cw=$(( SW / cols ))
 ch=$(( SH / rows ))
-
+# fix block
+cols=3; rows=2
 # Close any previous wall.
 pkill -f "mpv.*rtsp://" 2>/dev/null
 sleep 1
