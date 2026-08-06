@@ -108,3 +108,12 @@ config node ให้สามารถใช้งาน port 443 ได้ โ
 which node
 sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
 
+
+# scan the subnet, then show only TP-Link devices
+   sudo nmap -sn 192.168.0.0/24 >/dev/null && arp -a | grep -i -E "tp-link|tplink"
+
+  # scan the whole LAN — vendor name shows in the 3rd column
+sudo arp-scan --localnet
+
+sudo nmap -sn 192.168.0.0/24
+sudo nmap -sn 192.168.0.0/24 | grep -B2 -i "tp-link"
