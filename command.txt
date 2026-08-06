@@ -109,6 +109,7 @@ which node
 sudo setcap 'cap_net_bind_service=+ep' $(readlink -f $(which node))
 
 
+<<<<<<< HEAD
 # scan the subnet, then show only TP-Link devices
    sudo nmap -sn 192.168.0.0/24 >/dev/null && arp -a | grep -i -E "tp-link|tplink"
 
@@ -117,3 +118,6 @@ sudo arp-scan --localnet
 
 sudo nmap -sn 192.168.0.0/24
 sudo nmap -sn 192.168.0.0/24 | grep -B2 -i "tp-link"
+=======
+find . -maxdepth 1 -type f -name "*.jpg" -delete
+>>>>>>> fc879c3993669447e6d0012001f24f059815177e

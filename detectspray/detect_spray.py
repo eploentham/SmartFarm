@@ -106,7 +106,11 @@ DB_CONFIG = {
 }
 
 # ======================================================================
-logging.basicConfig(level=logging.INFO,    format="%(asctime)s [%(levelname)s] %(message)s",    handlers=[logging.StreamHandler(sys.stdout)],)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
 log = logging.getLogger("detect_spray")
 
 _running = True
@@ -158,7 +162,8 @@ class DB:
         self.conn = mysql.connector.connect(**self.cfg, autocommit=True)
         log.info("Connected to MariaDB %s/%s", self.cfg["host"], self.cfg["database"])
 
-    def insert(self, camera_code, plot_id, detected_at, person_count,               sprayer_detected, confidence, snapshot_path):
+    def insert(self, camera_code, plot_id, detected_at, person_count,
+               sprayer_detected, confidence, snapshot_path):
         sql = ("INSERT INTO t_person_detection "
                "(camera_code, plot_id, detected_at, person_count, "
                " sprayer_detected, confidence, snapshot_path) "
