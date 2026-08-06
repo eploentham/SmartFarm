@@ -123,3 +123,8 @@ sudo nmap -sn 192.168.0.0/24 | grep -B2 -i "tp-link"
 =======
 find . -maxdepth 1 -type f -name "*.jpg" -delete
 
+
+
+vcgencmd measure_temp
+watch -n 2 vcgencmd measure_temp
+watch -n 2 'vcgencmd measure_temp; vcgencmd measure_clock arm; vcgencmd get_throttled'
