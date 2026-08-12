@@ -1,0 +1,65 @@
+===== HOSTNAME =====
+pn64
+
+===== OS =====
+PRETTY_NAME="Ubuntu 26.04 LTS"
+NAME="Ubuntu"
+VERSION_ID="26.04"
+VERSION="26.04 LTS (Resolute Raccoon)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=resolute
+LOGO=ubuntu-logo
+
+===== KERNEL =====
+Linux pn64 7.0.0-29-generic #29-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 17 20:52:35 UTC 2026 x86_64 GNU/Linux
+
+===== CPU =====
+CPU(s):                                  12
+On-line CPU(s) list:                     0-11
+Model name:                              12th Gen Intel(R) Core(TM) i3-1220P
+Thread(s) per core:                      2
+Core(s) per socket:                      10
+Socket(s):                               1
+CPU(s) scaling MHz:                      32%
+NUMA node0 CPU(s):                       0-11
+
+===== MEMORY =====
+               total        used        free      shared  buff/cache   available
+Mem:           7.0Gi       1.9Gi       3.1Gi        62Mi       2.3Gi       5.1Gi
+Swap:          4.0Gi          0B       4.0Gi
+
+===== DISK =====
+NAME          SIZE TYPE FSTYPE MOUNTPOINT
+nvme0n1     465.8G disk
+├─nvme0n1p1     1G part vfat   /boot/efi
+└─nvme0n1p2 464.7G part ext4   /
+
+===== DISK USAGE =====
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           1.4G  1.8M  1.4G   1% /run
+/dev/nvme0n1p2  457G   26G  408G   6% /
+tmpfs           3.5G     0  3.5G   0% /dev/shm
+efivarfs        192K  123K   65K  66% /sys/firmware/efi/efivars
+tmpfs           3.5G     0  3.5G   0% /tmp
+/dev/nvme0n1p1  1.1G  6.4M  1.1G   1% /boot/efi
+none            1.0M     0  1.0M   0% /run/credentials/getty@tty1.service
+tmpfs           715M  8.0K  715M   1% /run/user/1000
+none            1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+none            1.0M     0  1.0M   0% /run/credentials/systemd-networkd.service
+none            1.0M     0  1.0M   0% /run/credentials/systemd-resolved.service
+
+===== IP ADDRESS =====
+192.168.0.254 100.97.182.35 172.17.0.1 fd7a:115c:a1e0::663a:b624
+
+===== UPTIME =====
+ 07:59:42 up 2 days, 15:35,  3 users,  load average: 0.02, 0.01, 0.00
+
+===== TEMPERATURE =====
+lm-sensors not installed
+ekapop@pn64:~/smartfarm$
