@@ -1,0 +1,15 @@
+HARDWARE (confirmed):
+- Frame: Holybro S500 V2 (assembled)
+- Flight controller: Pixhawk 6C Mini (mounted)
+- Companion computer: Raspberry Pi 5
+- GPS: Holybro M10
+- Optical flow: MicoAir MTF-01P (facing DOWN, UART to GPS2)
+- LiDAR up: TFmini Plus (I2C, facing UP for canopy)
+- LiDAR up: TFmini Plus (I2C, facing front )
+- RC receiver: Holybro ELRS RP3-V2 (CRSF, TELEM2)
+- Telemetry: SiK 433MHz (TELEM1)
+- Camera: CSI rpi module3 12 mb to RPi5
+- Depth camera: Intel RealSense D435i (USB-C to RPi 5)
+- RadioMaster Boxer Transmitter
+- battery 4s 5200 
+- UBEC 5A5V hobbywing

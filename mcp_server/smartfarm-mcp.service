@@ -1,0 +1,22 @@
+[Unit]
+Description=Smart Farm MCP Server
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=ekapop
+Group=ekapop
+
+WorkingDirectory=/home/ekapop/smartfarm/mcp_server
+
+ExecStart=/home/ekapop/venv/mcp/bin/uvicorn server:app --host 127.0.0.1 --port 8765
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
