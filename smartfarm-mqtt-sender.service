@@ -1,0 +1,19 @@
+[Unit]
+Description=Smartfarm MQTT sender (motion -> JPEG -> PN64)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ekapop
+Group=ekapop
+SupplementaryGroups=video
+WorkingDirectory=/home/ekapop/smartfarm/models
+ExecStart=/home/ekapop/detect/venv/bin/python /home/ekapop/smartfarm/models/mqtt_sender_pi5.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

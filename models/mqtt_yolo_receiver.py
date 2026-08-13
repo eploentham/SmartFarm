@@ -23,7 +23,8 @@ LOW_MIN, LOW_MAX = 0.25, 0.50
 
 # --- Telegram ---
 TG_TOKEN     = "8940796280:AAH5b1rk94Ujcj5aEJMfhwMEan5D_Xcaos0"          # ⚠️ ต้องใส่ (ใช้ตัวเดิมจาก detectbottle ได้)
-TG_CHAT_ID   = "8394445325"                    # พี่เอก (ทดสอบ) — สลับเป็น chat_id ของ M ทีหลัง
+TG_CHAT_ID   = "8979584153"                    # พี่เอก (ทดสอบ) — สลับเป็น chat_id ของ M ทีหลัง
+TG_CHAT_ID_CHK   = "8394445325"                 #pop
 TG_COOLDOWN  = 900                             # throttle 15 นาที (900 วิ) กันสแปม
 TG_MIN_CONF  = 0.50                            # ต้อง conf >= 0.5 ถึงนับ (มั่นใจจริง)
 
@@ -61,7 +62,23 @@ def send_telegram(text, img_bgr):
             print(f"  -> Telegram error {r.status_code}: {r.text[:100]}")
     except Exception as e:
         print(f"  -> Telegram ส่งไม่ได้: {e}")
-
+def send_telegram_checker(text, img_bgr):
+    """ส่งข้อความ + รูปไป Telegram (ทำงานใน background thread — ช้าได้ ไม่บล็อก loop)"""
+    try:
+        # encode รูปเป็น JPEG ใน RAM (ไม่เขียน disk — ตรงกฎ retention)
+        ok, jpg = cv2.imencode(".jpg", img_bgr)
+        if not ok:
+            return
+        url   = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
+        files = {"photo": ("detect.jpg", jpg.tobytes(), "image/jpeg")}
+        data  = {"chat_id": TG_CHAT_ID_CHK, "caption": text}
+        r = requests.post(url, data=data, files=files, timeout=20)
+        if r.status_code == 200:
+            print("  -> ส่ง Telegram แล้ว")
+        else:
+            print(f"  -> Telegram error {r.status_code}: {r.text[:100]}")
+    except Exception as e:
+        print(f"  -> Telegram ส่งไม่ได้: {e}")
 def on_connect(client, userdata, flags, rc):
     if rc == 0:
         print("เชื่อม MQTT สำเร็จ")
@@ -113,6 +130,11 @@ def on_message(client, userdata, msg):
             args=(caption, annotated.copy()),   # copy กัน main loop เขียนทับระหว่างส่ง
             daemon=True                          # ปิด service ได้แม้ upload ค้าง
         ).start()
+        threading.Thread(
+                    target=send_telegram_checker,
+                    args=(caption, annotated.copy()),   # copy กัน main loop เขียนทับระหว่างส่ง
+                    daemon=True                          # ปิด service ได้แม้ upload ค้าง
+                ).start()
         last_alert_ts = now
         print("  -> worker+sprayer! ส่ง Telegram (thread)")
 

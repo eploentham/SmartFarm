@@ -136,3 +136,4 @@ rpicam-jpeg --camera 1 -o /tmp/cam1.jpg -t 1000
 
 systemctl is-active detect_spray.service
 
+sudo systemd-analyze verify smartfarm-mqtt-receiver.service
