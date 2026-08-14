@@ -43,3 +43,12 @@ OBSTACLE_BLOCKED_M = float(os.getenv("OBSTACLE_BLOCKED_M", "0.8"))
 OBSTACLE_WARNING_M = float(os.getenv("OBSTACLE_WARNING_M", "1.5"))
 DEPTH_MIN_VALID_RATIO = float(os.getenv("DEPTH_MIN_VALID_RATIO", "0.20"))
 DEPTH_STALE_AFTER_SEC = float(os.getenv("DEPTH_STALE_AFTER_SEC", "0.50"))
+
+# Three active-high, single-colour status LEDs (BCM numbering). Each LED must
+# have its own current-limiting resistor; 330 ohms is the recommended start.
+STATUS_LED_ENABLED = os.getenv("STATUS_LED_ENABLED", "true").lower() in {
+    "1", "true", "yes", "on",
+}
+STATUS_LED_BLUE_GPIO = int(os.getenv("STATUS_LED_BLUE_GPIO", "5"))
+STATUS_LED_GREEN_GPIO = int(os.getenv("STATUS_LED_GREEN_GPIO", "6"))
+STATUS_LED_ORANGE_GPIO = int(os.getenv("STATUS_LED_ORANGE_GPIO", "12"))

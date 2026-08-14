@@ -13,6 +13,7 @@ from sdfm.debug.safety import WalkSafetyInterlock, WalkSafetyViolation
 from sdfm.flight.mavlink_router import MavlinkRouter
 from sdfm.flight.pixhawk import PixhawkConnection
 from sdfm.flight.telemetry import TelemetryState
+from sdfm.indicators.led import LedStatus, StatusLedController, status_for_obstacle
 from sdfm.perception.obstacle import ObstacleConfig, ObstacleDetector
 from sdfm.perception.state import PerceptionState
 from sdfm.sensors.realsense import RealSenseConfig, RealSenseDepthSensor
@@ -32,6 +33,7 @@ class DebugWalkRunner:
         telemetry: TelemetryState | None = None,
         output: TextIO | None = None,
         csv_path: Path | None = None,
+        leds: StatusLedController | None = None,
     ) -> None:
         if not DEBUG_WALK_MODE or not config.DEBUG_WALK_MODE:
             raise WalkSafetyViolation("DEBUG_WALK_MODE_MUST_BE_TRUE")
@@ -65,6 +67,29 @@ class DebugWalkRunner:
         import sys
         self.output = output or sys.stdout
         self.csv_path = csv_path
+        self.leds = leds
+
+    def _start_leds(self) -> None:
+        if self.leds is None and config.STATUS_LED_ENABLED:
+            self.leds = StatusLedController.from_gpiozero(
+                config.STATUS_LED_BLUE_GPIO,
+                config.STATUS_LED_GREEN_GPIO,
+                config.STATUS_LED_ORANGE_GPIO,
+            )
+        if self.leds is not None:
+            self.leds.set_status(LedStatus.STARTING, safety_override=True)
+
+    def _update_leds(self, perception: PerceptionState) -> None:
+        if self.leds is None:
+            return
+        heartbeat_age = self.telemetry.heartbeat_age()
+        if heartbeat_age is None or heartbeat_age > config.HEARTBEAT_TIMEOUT_SEC:
+            self.leds.set_status(LedStatus.TELEMETRY_LOST)
+            return
+        self.leds.set_status(
+            status_for_obstacle(perception.obstacle_level),
+            safety_override=True,
+        )
 
     def _request_telemetry(self) -> None:
         # Message-rate requests are telemetry configuration only; they neither
@@ -117,10 +142,13 @@ class DebugWalkRunner:
         csv_file: TextIO | None = None
         writer = None
         try:
+            self._start_leds()
             self.pixhawk.connect()
             self.router.start()
             self._request_telemetry()
             self.sensor.start()
+            if self.leds is not None:
+                self.leds.set_status(LedStatus.READY, safety_override=True)
             if self.csv_path is not None:
                 self.csv_path.parent.mkdir(parents=True, exist_ok=True)
                 csv_file = self.csv_path.open("a", newline="", encoding="utf-8")
@@ -136,12 +164,15 @@ class DebugWalkRunner:
 
             print("DEBUG_WALK_MODE=True | ARM=BLOCKED | TAKEOFF=BLOCKED", file=self.output)
             while True:
+                if self.telemetry.is_armed() and self.leds is not None:
+                    self.leds.set_status(LedStatus.CRITICAL, safety_override=True)
                 WalkSafetyInterlock.assert_disarmed(self.telemetry)
                 observation = self.sensor.read()
                 perception = self.detector.evaluate(
                     observation.roi_depth_m,
                     captured_monotonic=observation.captured_monotonic,
                 )
+                self._update_leds(perception)
                 print(self._status_line(perception), file=self.output, flush=True)
                 if writer is not None:
                     snap = self.telemetry.snapshot()
@@ -169,5 +200,7 @@ class DebugWalkRunner:
             self.sensor.stop()
             self.router.stop()
             self.pixhawk.close()
+            if self.leds is not None:
+                self.leds.close()
             if csv_file is not None:
                 csv_file.close()
