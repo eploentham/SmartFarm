@@ -210,9 +210,7 @@ class PixhawkConnection:
         with self._lock:
 
             if self.master is None:
-                raise RuntimeError(
-                    "PIXHAWK_NOT_CONNECTED"
-                )
+                raise RuntimeError(                    "PIXHAWK_NOT_CONNECTED"                )
 
             message = self.master.recv_match(
                 type=type,
@@ -224,9 +222,7 @@ class PixhawkConnection:
                 message is not None
                 and message.get_type() == "HEARTBEAT"
             ):
-                self.last_heartbeat_monotonic = (
-                    time.monotonic()
-                )
+                self.last_heartbeat_monotonic = (                    time.monotonic()                )
 
             return message
 
@@ -266,11 +262,7 @@ class PixhawkConnection:
                 0,
                 message_id,
                 interval_us,
-                0,
-                0,
-                0,
-                0,
-                0,
+                0,                0,                0,                0,                0,
             )
 
     # ------------------------------------------------------------------

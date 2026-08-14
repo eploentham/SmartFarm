@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import time
 
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="Cycle DR01 Blue/Green/Orange LEDs")
     parser.add_argument("--seconds", type=float, default=2.0, help="duration of each pattern")
@@ -37,7 +36,6 @@ def main() -> int:
     finally:
         leds.close()
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

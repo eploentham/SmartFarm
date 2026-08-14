@@ -18,7 +18,6 @@ class LedStatus(str, Enum):
     TELEMETRY_LOST = "TELEMETRY_LOST"
     CRITICAL = "CRITICAL"
 
-
 def status_for_obstacle(level: ObstacleLevel) -> LedStatus:
     return {
         ObstacleLevel.CLEAR: LedStatus.CLEAR,
@@ -26,7 +25,6 @@ def status_for_obstacle(level: ObstacleLevel) -> LedStatus:
         ObstacleLevel.BLOCKED: LedStatus.BLOCKED,
         ObstacleLevel.UNKNOWN: LedStatus.UNKNOWN,
     }[level]
-
 
 class StatusLedController:
     """Drive three active-high LEDs. Safety states override normal states."""
