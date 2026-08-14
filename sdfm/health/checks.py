@@ -1,7 +1,7 @@
 # sdfm/health/checks.py
 
 from __future__ import annotations
-
+import time
 import glob
 import os
 import platform
@@ -9,7 +9,7 @@ import shutil
 import socket
 
 from pymavlink import mavutil
-
+#from sdfm.core.result import CheckResult
 from sdfm.health.report import HealthResult, HealthStatus
 
 
@@ -93,7 +93,554 @@ def check_pi5() -> HealthResult:
             message=f"PI5_CHECK_FAILED: {exc}",
         )
 
+def check_imu(
+    pixhawk,
+    router,
+    timeout_sec: float = 3.0,
+) -> HealthResult:
 
+    last_message = None
+    last_time = None
+    message_count = 0
+
+    def on_imu(message):
+        nonlocal last_message
+        nonlocal last_time
+        nonlocal message_count
+
+        last_message = message
+        last_time = time.monotonic()
+        message_count += 1
+
+    router.subscribe(
+        "HIGHRES_IMU",
+        on_imu,
+    )
+
+    try:
+        pixhawk.request_message_interval(
+            mavutil.mavlink.MAVLINK_MSG_ID_HIGHRES_IMU,
+            10.0,
+        )
+
+        deadline = time.monotonic() + timeout_sec
+
+        while (
+            last_message is None
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.05)
+
+        if last_message is None:
+            return HealthResult(
+                name="IMU",
+                status=HealthStatus.FAILED,
+                message="IMU_DATA_TIMEOUT",
+                details={
+                    "message_type": "HIGHRES_IMU",
+                },
+            )
+
+        age = time.monotonic() - last_time
+
+        if age > 1.0:
+            return HealthResult(
+                name="IMU",
+                status=HealthStatus.FAILED,
+                message="IMU_DATA_STALE",
+                details={
+                    "age_sec": round(age, 3),
+                },
+            )
+
+        return HealthResult(
+            name="IMU",
+            status=HealthStatus.OK,
+            message="IMU telemetry healthy",
+            details={
+                "message_type": "HIGHRES_IMU",
+                "messages": message_count,
+                "age_sec": round(age, 3),
+                "accel_x": round(last_message.xacc, 3),
+                "accel_y": round(last_message.yacc, 3),
+                "accel_z": round(last_message.zacc, 3),
+            },
+        )
+
+    finally:
+        router.unsubscribe(
+            "HIGHRES_IMU",
+            on_imu,
+        )
+def check_compass(
+    pixhawk,
+    router,
+    timeout_sec: float = 3.0,
+) -> HealthResult:
+
+    last_message = None
+    last_time = None
+
+    def on_imu(message):
+        nonlocal last_message
+        nonlocal last_time
+
+        last_message = message
+        last_time = time.monotonic()
+
+    router.subscribe(
+        "HIGHRES_IMU",
+        on_imu,
+    )
+
+    try:
+        pixhawk.request_message_interval(
+            mavutil.mavlink.MAVLINK_MSG_ID_HIGHRES_IMU,
+            10.0,
+        )
+
+        deadline = time.monotonic() + timeout_sec
+
+        while (
+            last_message is None
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.05)
+
+        if last_message is None:
+            return HealthResult(
+                name="COMPASS",
+                status=HealthStatus.FAILED,
+                message="COMPASS_DATA_TIMEOUT",
+                details={},
+            )
+
+        age = time.monotonic() - last_time
+
+        if age > 1.0:
+            return HealthResult(
+                name="COMPASS",
+                status=HealthStatus.FAILED,
+                message="COMPASS_DATA_STALE",
+                details={
+                    "age_sec": round(age, 3),
+                },
+            )
+
+        x = float(last_message.xmag)
+        y = float(last_message.ymag)
+        z = float(last_message.zmag)
+
+        if (
+            abs(x) < 0.0001
+            and abs(y) < 0.0001
+            and abs(z) < 0.0001
+        ):
+            return HealthResult(
+                name="COMPASS",
+                status=HealthStatus.FAILED,
+                message="COMPASS_NO_VALID_DATA",
+                details={
+                    "mag_x": x,
+                    "mag_y": y,
+                    "mag_z": z,
+                },
+            )
+
+        return HealthResult(
+            name="COMPASS",
+            status=HealthStatus.OK,
+            message="Compass telemetry healthy",
+            details={
+                "age_sec": round(age, 3),
+                "mag_x": round(x, 4),
+                "mag_y": round(y, 4),
+                "mag_z": round(z, 4),
+                "calibration_verified": False,
+            },
+        )
+
+    finally:
+        router.unsubscribe(
+            "HIGHRES_IMU",
+            on_imu,
+        )
+def check_elrs(
+    pixhawk,
+    router,
+    timeout_sec: float = 3.0,
+) -> HealthResult:
+
+    last_message = None
+    last_time = None
+    message_count = 0
+
+    def on_rc(message):
+        nonlocal last_message
+        nonlocal last_time
+        nonlocal message_count
+
+        last_message = message
+        last_time = time.monotonic()
+        message_count += 1
+
+    router.subscribe(
+        "RC_CHANNELS",
+        on_rc,
+    )
+
+    try:
+        pixhawk.request_message_interval(
+            mavutil.mavlink.MAVLINK_MSG_ID_RC_CHANNELS,
+            5.0,
+        )
+
+        deadline = time.monotonic() + timeout_sec
+
+        while (
+            last_message is None
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.05)
+
+        if last_message is None:
+            return HealthResult(
+                name="ELRS",
+                status=HealthStatus.FAILED,
+                message="RC_CHANNELS_TIMEOUT",
+            )
+
+        age = time.monotonic() - last_time
+
+        channels = [
+            last_message.chan1_raw,
+            last_message.chan2_raw,
+            last_message.chan3_raw,
+            last_message.chan4_raw,
+        ]
+
+        if age > 1.0:
+            return HealthResult(
+                name="ELRS",
+                status=HealthStatus.STALE,
+                message="RC_CHANNELS_STALE",
+                details={
+                    "age_sec": round(age, 3),
+                },
+            )
+
+        valid = all(
+            800 <= value <= 2200
+            for value in channels
+        )
+
+        if not valid:
+            return HealthResult(
+                name="ELRS",
+                status=HealthStatus.FAILED,
+                message="RC_INPUT_INVALID",
+                details={
+                    "ch1": channels[0],
+                    "ch2": channels[1],
+                    "ch3": channels[2],
+                    "ch4": channels[3],
+                },
+            )
+
+        return HealthResult(
+            name="ELRS",
+            status=HealthStatus.OK,
+            message="ELRS RC input healthy",
+            details={
+                "messages": message_count,
+                "age_sec": round(age, 3),
+                "ch1": channels[0],
+                "ch2": channels[1],
+                "ch3": channels[2],
+                "ch4": channels[3],
+            },
+        )
+
+    finally:
+        router.unsubscribe(
+            "RC_CHANNELS",
+            on_rc,
+        )
+def check_realsense(
+    timeout_sec: float = 3.0,
+) -> HealthResult:
+
+    try:
+        import pyrealsense2 as rs
+
+    except ImportError:
+        return HealthResult(
+            name="RealSense",
+            status=HealthStatus.FAILED,
+            message="REALSENSE_LIBRARY_MISSING",
+        )
+
+    pipeline = None
+
+    try:
+        context = rs.context()
+        devices = context.query_devices()
+
+        if len(devices) == 0:
+            return HealthResult(
+                name="RealSense",
+                status=HealthStatus.FAILED,
+                message="REALSENSE_NOT_FOUND",
+            )
+
+        device = devices[0]
+
+        name = device.get_info(
+            rs.camera_info.name
+        )
+
+        serial = device.get_info(
+            rs.camera_info.serial_number
+        )
+
+        firmware = device.get_info(
+            rs.camera_info.firmware_version
+        )
+
+        pipeline = rs.pipeline()
+        config = rs.config()
+
+        config.enable_stream(
+            rs.stream.depth,
+            640,
+            480,
+            rs.format.z16,
+            30,
+        )
+
+        config.enable_stream(
+            rs.stream.color,
+            640,
+            480,
+            rs.format.bgr8,
+            30,
+        )
+
+        pipeline.start(config)
+
+        deadline = time.monotonic() + timeout_sec
+
+        depth_frame = None
+        color_frame = None
+
+        while time.monotonic() < deadline:
+
+            try:
+                frames = pipeline.wait_for_frames(
+                    timeout_ms=500
+                )
+
+            except RuntimeError:
+                continue
+
+            depth_frame = frames.get_depth_frame()
+            color_frame = frames.get_color_frame()
+
+            if depth_frame and color_frame:
+                break
+
+        if not depth_frame:
+            return HealthResult(
+                name="RealSense",
+                status=HealthStatus.FAILED,
+                message="REALSENSE_DEPTH_TIMEOUT",
+                details={
+                    "name": name,
+                    "serial": serial,
+                },
+            )
+
+        if not color_frame:
+            return HealthResult(
+                name="RealSense",
+                status=HealthStatus.FAILED,
+                message="REALSENSE_COLOR_TIMEOUT",
+                details={
+                    "name": name,
+                    "serial": serial,
+                },
+            )
+
+        width = depth_frame.get_width()
+        height = depth_frame.get_height()
+
+        center_distance = depth_frame.get_distance(
+            width // 2,
+            height // 2,
+        )
+
+        return HealthResult(
+            name="RealSense",
+            status=HealthStatus.OK,
+            message="RealSense D435i operational",
+            details={
+                "name": name,
+                "serial": serial,
+                "firmware": firmware,
+                "depth": "OK",
+                "color": "OK",
+                "center_depth_m": round(
+                    center_distance,
+                    3,
+                ),
+            },
+        )
+
+    except Exception as exc:
+        return HealthResult(
+            name="RealSense",
+            status=HealthStatus.FAILED,
+            message="REALSENSE_ERROR",
+            details={
+                "error": str(exc),
+            },
+        )
+
+    finally:
+        if pipeline is not None:
+            try:
+                pipeline.stop()
+            except Exception:
+                pass
+def check_prearm(
+    pixhawk,
+    router,
+    timeout_sec: float = 5.0,
+) -> HealthResult:
+
+    last_sys_status = None
+    last_time = None
+    prearm_messages: list[str] = []
+
+    def on_sys_status(message):
+        nonlocal last_sys_status
+        nonlocal last_time
+
+        last_sys_status = message
+        last_time = time.monotonic()
+
+    def on_statustext(message):
+        text = message.text
+
+        if isinstance(text, bytes):
+            text = text.decode(
+                "utf-8",
+                errors="replace",
+            )
+
+        text = str(text).rstrip("\x00")
+
+        if text.lower().startswith("prearm:"):
+            if text not in prearm_messages:
+                prearm_messages.append(text)
+
+    router.subscribe(
+        "SYS_STATUS",
+        on_sys_status,
+    )
+
+    router.subscribe(
+        "STATUSTEXT",
+        on_statustext,
+    )
+
+    try:
+        pixhawk.request_message_interval(
+            mavutil.mavlink.MAVLINK_MSG_ID_SYS_STATUS,
+            2.0,
+        )
+
+        deadline = time.monotonic() + timeout_sec
+
+        while (
+            last_sys_status is None
+            and time.monotonic() < deadline
+        ):
+            time.sleep(0.05)
+
+        if last_sys_status is None:
+            return HealthResult(
+                name="PreArm",
+                status=HealthStatus.STALE,
+                message="PREARM_STATUS_TIMEOUT",
+            )
+
+        age = time.monotonic() - last_time
+
+        if age > 1.0:
+            return HealthResult(
+                name="PreArm",
+                status=HealthStatus.STALE,
+                message="PREARM_STATUS_STALE",
+                details={
+                    "age_sec": round(age, 3),
+                },
+            )
+
+        prearm_bit = (
+            mavutil.mavlink.MAV_SYS_STATUS_PREARM_CHECK
+        )
+
+        enabled = bool(
+            last_sys_status.onboard_control_sensors_enabled
+            & prearm_bit
+        )
+
+        healthy = bool(
+            last_sys_status.onboard_control_sensors_health
+            & prearm_bit
+        )
+
+        details = {
+            "enabled": enabled,
+            "healthy": healthy,
+            "age_sec": round(age, 3),
+            "messages": prearm_messages,
+        }
+
+        if not enabled:
+            return HealthResult(
+                name="PreArm",
+                status=HealthStatus.DEGRADED,
+                message="PREARM_CHECK_NOT_ENABLED",
+                details=details,
+            )
+
+        if not healthy:
+            return HealthResult(
+                name="PreArm",
+                status=HealthStatus.FAILED,
+                message="PREARM_CHECK_FAILED",
+                details=details,
+            )
+
+        return HealthResult(
+            name="PreArm",
+            status=HealthStatus.OK,
+            message="ArduPilot pre-arm checks healthy",
+            details=details,
+        )
+
+    finally:
+        router.unsubscribe(
+            "SYS_STATUS",
+            on_sys_status,
+        )
+
+        router.unsubscribe(
+            "STATUSTEXT",
+            on_statustext,
+        )
 def connect_pixhawk():
     """
     Connect to Pixhawk and wait for heartbeat.
