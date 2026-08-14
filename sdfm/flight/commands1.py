@@ -67,6 +67,7 @@ class FlightCommands:
         # at a time.
         self._command_lock = threading.Lock()
 
+    
     # ------------------------------------------------------------------
     # Generic helpers
     # ------------------------------------------------------------------
@@ -256,6 +257,223 @@ class FlightCommands:
             details=details,
         )
 
+    def arm(
+        self,
+        *,
+        ack_timeout_sec: float = DEFAULT_ACK_TIMEOUT_SEC,
+        state_timeout_sec: float = DEFAULT_STATE_TIMEOUT_SEC,
+    ) -> OperationResult:
+        """
+        ARM vehicle.
+
+        COMMAND
+        ↓
+        COMMAND_ACK
+        ↓
+        VERIFY telemetry.armed == True
+        ↓
+        SUCCESS / FAILED
+        """
+
+        with self._command_lock:
+
+            environment_error = (
+                self._check_command_environment()
+            )
+
+            if environment_error is not None:
+                return environment_error
+
+            if self.telemetry.is_armed():
+                return OperationResult.ok(
+                    message="Vehicle already armed",
+                    details={
+                        "command_sent": False,
+                    },
+                )
+
+            command_id = (
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM
+            )
+
+            self.router.clear_ack_queue()
+
+            try:
+                self.pixhawk.master.mav.command_long_send(
+                    self.pixhawk.master.target_system,
+                    self.pixhawk.master.target_component,
+                    command_id,
+                    0,
+
+                    # param1 = 1 -> ARM
+                    1,
+
+                    # param2 = 0 -> normal ARM
+                    # DO NOT force-arm / bypass safety checks.
+                    0,
+
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                )
+
+            except Exception as exc:
+                return OperationResult.failed(
+                    ResultCode.COMMAND_FAILED,
+                    f"Failed to send ARM command: {exc}",
+                )
+
+            ack = self.router.wait_command_ack(
+                command_id=command_id,
+                timeout_sec=ack_timeout_sec,
+            )
+
+            ack_error = self._check_ack(
+                ack,
+                command_id,
+            )
+
+            if ack_error is not None:
+                return ack_error
+
+            verified = self._wait_until(
+                lambda: self.telemetry.is_armed(),
+                timeout_sec=state_timeout_sec,
+            )
+
+            if not verified:
+                return OperationResult.failed(
+                    ResultCode.ARM_FAILED,
+                    (
+                        "ARM ACK received but "
+                        "armed state was not reached"
+                    ),
+                    details={
+                        "ack_result": ack.result,
+                        "ack_result_name":
+                            self._ack_name(ack.result),
+                        "state_timeout_sec":
+                            state_timeout_sec,
+                    },
+                )
+
+            return OperationResult.ok(
+                message="Vehicle armed",
+                details={
+                    "ack_result": ack.result,
+                    "ack_result_name":
+                        self._ack_name(ack.result),
+                    "verified_armed": True,
+                    "command_sent": True,
+                },
+            )
+
+
+    def disarm(
+        self,
+        *,
+        ack_timeout_sec: float = DEFAULT_ACK_TIMEOUT_SEC,
+        state_timeout_sec: float = DEFAULT_STATE_TIMEOUT_SEC,
+    ) -> OperationResult:
+        """
+        DISARM vehicle and verify telemetry.armed == False.
+        """
+
+        with self._command_lock:
+
+            environment_error = (
+                self._check_command_environment()
+            )
+
+            if environment_error is not None:
+                return environment_error
+
+            if not self.telemetry.is_armed():
+                return OperationResult.ok(
+                    message="Vehicle already disarmed",
+                    details={
+                        "command_sent": False,
+                    },
+                )
+
+            command_id = (
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM
+            )
+
+            self.router.clear_ack_queue()
+
+            try:
+                self.pixhawk.master.mav.command_long_send(
+                    self.pixhawk.master.target_system,
+                    self.pixhawk.master.target_component,
+                    command_id,
+                    0,
+
+                    # param1 = 0 -> DISARM
+                    0,
+
+                    # normal DISARM
+                    0,
+
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                )
+
+            except Exception as exc:
+                return OperationResult.failed(
+                    ResultCode.COMMAND_FAILED,
+                    f"Failed to send DISARM command: {exc}",
+                )
+
+            ack = self.router.wait_command_ack(
+                command_id=command_id,
+                timeout_sec=ack_timeout_sec,
+            )
+
+            ack_error = self._check_ack(
+                ack,
+                command_id,
+            )
+
+            if ack_error is not None:
+                return ack_error
+
+            verified = self._wait_until(
+                lambda: not self.telemetry.is_armed(),
+                timeout_sec=state_timeout_sec,
+            )
+
+            if not verified:
+                return OperationResult.failed(
+                    ResultCode.DISARM_FAILED,
+                    (
+                        "DISARM ACK received but "
+                        "disarmed state was not reached"
+                    ),
+                    details={
+                        "ack_result": ack.result,
+                        "ack_result_name":
+                            self._ack_name(ack.result),
+                        "state_timeout_sec":
+                            state_timeout_sec,
+                    },
+                )
+
+            return OperationResult.ok(
+                message="Vehicle disarmed",
+                details={
+                    "ack_result": ack.result,
+                    "ack_result_name":
+                        self._ack_name(ack.result),
+                    "verified_armed": False,
+                    "command_sent": True,
+                },
+            )
     # ------------------------------------------------------------------
     # Flight mode
     # ------------------------------------------------------------------
