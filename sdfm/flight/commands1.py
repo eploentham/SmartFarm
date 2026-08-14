@@ -708,10 +708,7 @@ class FlightCommands:
                     "Flight mode changed to "
                     f"{flight_mode.value}"
                 ),
-                details={
-                    "mode":
-                        flight_mode.value,
-
+                details={  "mode":                        flight_mode.value,
                     "mode_id":
                         mode_id,
 
