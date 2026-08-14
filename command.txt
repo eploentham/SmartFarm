@@ -137,3 +137,22 @@ rpicam-jpeg --camera 1 -o /tmp/cam1.jpg -t 1000
 systemctl is-active detect_spray.service
 
 sudo systemd-analyze verify smartfarm-mqtt-receiver.service
+
+
+
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+รันคำสั่งนี้ตัวเดียว จะสแกนทุก service ใน /etc/systemd/system/ แล้วเช็คให้เลยว่าตัวไหนขาด [Install] หรือ Restart=:
+
+echo "SERVICE | HAS_INSTALL | HAS_RESTART | ENABLED_STATE"
+echo "--------|-------------|-------------|---------------"
+for f in /etc/systemd/system/*.service; do
+  name=$(basename "$f")
+  has_install=$(grep -q '^\[Install\]' "$f" && echo "yes" || echo "NO")
+  has_restart=$(grep -q '^Restart=' "$f" && echo "yes" || echo "NO")
+  enabled=$(systemctl is-enabled "$name" 2>/dev/null)
+  printf "%-40s | %-11s | %-11s | %s\n" "$name" "$has_install" "$has_restart" "$enabled"
+done
