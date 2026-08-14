@@ -4,15 +4,27 @@ from __future__ import annotations
 
 import socket
 
+from sdfm.flight.mavlink_router import MavlinkRouter
+from sdfm.flight.pixhawk import PixhawkConnection
+from sdfm.flight.telemetry import TelemetryState
+
 from sdfm.health.checks import (
     check_battery,
+    check_compass,
+    check_elrs,
     check_gps,
     check_heartbeat,
+    check_imu,
     check_pi5,
-    connect_pixhawk,
+    check_realsense,
     unknown_check,
+    check_prearm,
 )
-from sdfm.health.report import HealthStatus, SystemCheckReport
+from sdfm.health.report import (
+    HealthResult,
+    HealthStatus,
+    SystemCheckReport,
+)
 
 
 VEHICLE_NAME = "DR01"
@@ -24,19 +36,24 @@ CRITICAL_CHECKS = {
     "Heartbeat",
     "Battery",
     "GPS",
+    "IMU",
+    "Compass",
+    "ELRS",
+    "PreArm",
 }
 
 
-def is_ready(report: SystemCheckReport) -> bool:
+def is_ready(
+    report: SystemCheckReport,
+) -> bool:
     """
-    Temporary readiness policy for early SDFM development.
+    Temporary development readiness policy.
 
-    Only checks currently implemented and verified are considered critical.
-
-    This will later move to safety/policy.py and become mission-state aware.
+    This is NOT final flight readiness.
     """
 
     for check in report.checks:
+
         if check.name not in CRITICAL_CHECKS:
             continue
 
@@ -46,16 +63,34 @@ def is_ready(report: SystemCheckReport) -> bool:
     return True
 
 
-def run_system_check() -> SystemCheckReport:
-    """
-    Run SDFM system health checks.
+def check_pixhawk_connection(
+    pixhawk: PixhawkConnection,
+) -> HealthResult:
 
-    Read-only:
-    - no ARM
-    - no flight mode change
-    - no TAKEOFF
-    - no movement command
-    """
+    try:
+        pixhawk.connect()
+
+        return HealthResult(
+            name="Pixhawk",
+            status=HealthStatus.OK,
+            message="MAVLink connection established",
+            details={
+                "device": pixhawk.device,
+                "system_id": pixhawk.system_id,
+                "component_id": pixhawk.component_id,
+            },
+        )
+
+    except Exception as exc:
+
+        return HealthResult(
+            name="Pixhawk",
+            status=HealthStatus.FAILED,
+            message=f"PIXHAWK_CONNECTION_FAILED: {exc}",
+        )
+
+
+def run_system_check() -> SystemCheckReport:
 
     report = SystemCheckReport(
         vehicle=VEHICLE_NAME,
@@ -63,20 +98,40 @@ def run_system_check() -> SystemCheckReport:
     )
 
     # ----------------------------------------------------------
-    # Raspberry Pi 5
+    # Pi5
     # ----------------------------------------------------------
 
-    report.add(check_pi5())
+    report.add(
+        check_pi5()
+    )
 
     # ----------------------------------------------------------
-    # Pixhawk + MAVLink
+    # RealSense
+    #
+    # Directly connected to Pi5.
+    # Does not depend on Pixhawk.
     # ----------------------------------------------------------
 
-    master, pixhawk_result = connect_pixhawk()
+    report.add(
+        check_realsense()
+    )
 
-    report.add(pixhawk_result)
+    # ----------------------------------------------------------
+    # Pixhawk stack
+    # ----------------------------------------------------------
 
-    if master is None:
+    pixhawk = PixhawkConnection()
+
+    pixhawk_result = check_pixhawk_connection(
+        pixhawk
+    )
+
+    report.add(
+        pixhawk_result
+    )
+
+    if pixhawk_result.status != HealthStatus.OK:
+
         report.add(
             unknown_check(
                 "Heartbeat",
@@ -98,68 +153,162 @@ def run_system_check() -> SystemCheckReport:
             )
         )
 
-    else:
+        report.add(
+            unknown_check(
+                "IMU",
+                "PIXHAWK_UNAVAILABLE",
+            )
+        )
+
+        report.add(
+            unknown_check(
+                "Compass",
+                "PIXHAWK_UNAVAILABLE",
+            )
+        )
+
+        report.add(
+            unknown_check(
+                "ELRS",
+                "PIXHAWK_UNAVAILABLE",
+            )
+        )
+
+        return _finish_report(
+            report
+        )
+
+    telemetry = TelemetryState()
+
+    router = MavlinkRouter(
+        pixhawk=pixhawk,
+        telemetry=telemetry,
+    )
+
+    try:
+
+        router.start()
+
+        # ------------------------------------------------------
+        # Important:
+        #
+        # Legacy checks below still expect pymavlink master.
+        #
+        # We keep these temporarily until telemetry-based
+        # versions are implemented.
+        # ------------------------------------------------------
+
+        master = pixhawk.master
+
+        report.add(
+            check_heartbeat(master)
+        )
+
+        report.add(
+            check_battery(master)
+        )
+
+        report.add(
+            check_gps(master)
+        )
+
+        # ------------------------------------------------------
+        # New production checks using PixhawkConnection +
+        # MavlinkRouter.
+        # ------------------------------------------------------
+
+        report.add(
+            check_imu(
+                pixhawk,
+                router,
+            )
+        )
+
+        report.add(
+            check_compass(
+                pixhawk,
+                router,
+            )
+        )
+
+        report.add(
+            check_elrs(
+                pixhawk,
+                router,
+            )
+        )
+
+        report.add(
+            check_prearm(
+                pixhawk,
+                router,
+            )
+        )
+
+    finally:
+
         try:
-            report.add(
-                check_heartbeat(master)
-            )
+            router.stop()
+        except Exception:
+            pass
 
-            report.add(
-                check_battery(master)
-            )
+        try:
+            pixhawk.close()
+        except Exception:
+            pass
 
-            report.add(
-                check_gps(master)
-            )
+    return _finish_report(
+        report
+    )
 
-        finally:
-            try:
-                master.close()
-            except Exception:
-                pass
+
+def _finish_report(
+    report: SystemCheckReport,
+) -> SystemCheckReport:
 
     # ----------------------------------------------------------
-    # Checks not implemented yet
+    # Hardware not connected / not implemented yet
     # ----------------------------------------------------------
 
     report.add(
-        unknown_check("IMU")
+        unknown_check(
+            "Optical Flow",
+            "SENSOR_NOT_CONNECTED",
+        )
     )
 
     report.add(
-        unknown_check("Compass")
+        unknown_check(
+            "LiDAR Front",
+            "SENSOR_NOT_CONNECTED",
+        )
     )
 
     report.add(
-        unknown_check("Optical Flow")
+        unknown_check(
+            "LiDAR Up",
+            "SENSOR_NOT_CONNECTED",
+        )
     )
 
     report.add(
-        unknown_check("LiDAR Front")
+        unknown_check(
+            "SiK",
+        )
     )
 
     report.add(
-        unknown_check("LiDAR Up")
+        unknown_check(
+            "Pi Camera",
+            "SENSOR_NOT_CONNECTED",
+        )
     )
 
     report.add(
-        unknown_check("ELRS")
-    )
-
-    report.add(
-        unknown_check("SiK")
-    )
-
-    report.add(
-        unknown_check("RealSense")
-    )
-
-    report.add(
-        unknown_check("Pi Camera")
-    )
-
-    report.add(
-        unknown_check("PreArm")
+        unknown_check(
+            "Pi Camera",
+            "SENSOR_NOT_CONNECTED",
+        )
     )
 
     return report
@@ -170,7 +319,6 @@ def print_report(
 ) -> None:
 
     print()
-
     print("=" * 60)
     print(" SDFM SYSTEM CHECK")
     print("=" * 60)
@@ -216,7 +364,6 @@ def print_report(
         )
 
     print("=" * 60)
-
     print()
 
 
@@ -224,7 +371,9 @@ def main() -> int:
 
     report = run_system_check()
 
-    print_report(report)
+    print_report(
+        report
+    )
 
     if is_ready(report):
         return 0
