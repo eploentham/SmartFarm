@@ -103,6 +103,26 @@ class DebugWalkRunner:
         ):
             self.pixhawk.request_message_interval(message_id, frequency_hz)
 
+    def _require_disarmed_startup(self) -> None:
+        """Fail closed until MAVLink explicitly confirms DISARMED.
+
+        A local ``arm = False`` flag cannot change or prove Pixhawk state.  WALK
+        DEBUG intentionally never sends a DISARM command because accidentally
+        running it on an airborne vehicle must not stop the motors.
+        """
+        deadline = time.monotonic() + config.HEARTBEAT_TIMEOUT_SEC
+        while time.monotonic() < deadline:
+            if self.telemetry.armed is True:
+                if self.leds is not None:
+                    self.leds.set_status(LedStatus.CRITICAL, safety_override=True)
+                raise WalkSafetyViolation("PIXHAWK_ARMED_ABORT_DEBUG_WALK")
+            if self.telemetry.armed is False:
+                return
+            time.sleep(0.05)
+        if self.leds is not None:
+            self.leds.set_status(LedStatus.TELEMETRY_LOST, safety_override=True)
+        raise WalkSafetyViolation("PIXHAWK_ARMED_STATE_UNKNOWN_ABORT_DEBUG_WALK")
+
     @staticmethod
     def _degrees(value: float | None) -> float | None:
         return None if value is None else math.degrees(value)
@@ -146,6 +166,7 @@ class DebugWalkRunner:
             self.pixhawk.connect()
             self.router.start()
             self._request_telemetry()
+            self._require_disarmed_startup()
             self.sensor.start()
             if self.leds is not None:
                 self.leds.set_status(LedStatus.READY, safety_override=True)

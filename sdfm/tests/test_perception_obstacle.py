@@ -34,6 +34,5 @@ class ObstacleDetectorTests(unittest.TestCase):
         with self.assertRaises(WalkSafetyViolation):
             WalkSafetyInterlock.takeoff()
 
-
 if __name__ == "__main__":
     unittest.main()
