@@ -33,7 +33,7 @@ CAMS=(
   "vigi|192.168.0.251|$VIGI_PASS"
   "vigi|192.168.0.252|$VIGI_PASS"
   "hamrol|192.168.0.240|CHANGEME_alnum"   # <-- Hamrol 8MP: set the ALPHANUMERIC pw here
-  # "hamrol|192.168.0.240|CHANGEME_alnum" # <-- second Hamrol, uncomment when installed
+  "hamrol|192.168.0.241|CHANGEME_alnum" # <-- second Hamrol, uncomment when installed
 )
 
 FPS=12                           # output frame rate (lower = lighter on the Pi)

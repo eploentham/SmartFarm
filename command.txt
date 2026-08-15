@@ -156,3 +156,6 @@ for f in /etc/systemd/system/*.service; do
   enabled=$(systemctl is-enabled "$name" 2>/dev/null)
   printf "%-40s | %-11s | %-11s | %s\n" "$name" "$has_install" "$has_restart" "$enabled"
 done
+
+sed -i 's/\r$//' cctv_wall_v2.sh
+sudo chmod +x cctv_wall_v2.sh
