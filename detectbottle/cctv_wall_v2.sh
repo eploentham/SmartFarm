@@ -1,5 +1,5 @@
 #!/bin/bash
-# cctv_wall.sh — CCTV wall on the 55" TV (HDMI-A-1), FIXED 3x2 grid.
+# cctv_wall_v2.sh — CCTV wall on the 55" TV (HDMI-A-1), FIXED 3x2 grid.
 #
 # Why this version: labwc (Wayland) IGNORES mpv's --geometry, so the old
 # "one mpv window per camera + --geometry" approach could not tile them.
@@ -8,22 +8,34 @@
 # No geometry needed -> Wayland can't mess up the layout.
 #
 # Grid is fixed 3 columns x 2 rows (6 cells). Empty cells show black.
-# Add cameras by adding their IP to CAMS (up to 6).
+#
+# CHANGE (Aug 2026): now supports MIXED camera brands. VIGI and Hamrol (XMEye)
+# use DIFFERENT RTSP URL schemes and DIFFERENT password rules, so every camera
+# line now carries its own "type|ip|password". Build the URL per-type.
 
 # ===== EDIT THESE =====
 USER="admin"
-PASS="Ekartc2c51*"                       # the VIGI RTSP password (raw, no encoding)
+
+# --- VIGI settings (TP-Link) ---
+VIGI_PASS="Ekartc2c51*"          # VIGI RTSP password (raw, no encoding). May contain symbols.
+VIGI_STREAM="stream2"            # sub-stream (640x480) — light on the Pi5.
+#VIGI_STREAM="stream1"           # main-stream (2304x1296) — heavy.
+
+# --- Hamrol settings (XMEye, 8MP PoE) ---
+# NOTE: Hamrol password MUST be alphanumeric only (no  *  &  @  =).
+#       stream=1 -> sub-stream (light). stream=0 -> main 8MP (VERY heavy, avoid on the wall).
+HAMROL_STREAM="1"
+
+# Camera list. One line per camera:  "type|ip|password"
+#   type = vigi    -> rtsp://USER:PASS@IP:554/<VIGI_STREAM>
+#   type = hamrol  -> rtsp://IP:554/user=USER&password=PASS&channel=1&stream=<N>.sdp?real_stream
 CAMS=(
-  "192.168.0.251"
-  "192.168.0.252"
-  # "192.168.0.253"              # <- uncomment as you install more (max 6)
-  # "192.168.0.254"
-  # "192.168.0.255"
-  # "192.168.0.256"
+  "vigi|192.168.0.251|$VIGI_PASS"
+  "vigi|192.168.0.252|$VIGI_PASS"
+  "hamrol|192.168.0.240|CHANGEME_alnum"   # <-- Hamrol 8MP: set the ALPHANUMERIC pw here
+  # "hamrol|192.168.0.240|CHANGEME_alnum" # <-- second Hamrol, uncomment when installed
 )
-STREAM="stream2"                 # sub-stream (640x480) — MUCH lighter on Pi5.
-#STREAM="stream1"                # main-stream (2304x1296) — heavy: 5-6 of these
-                                 # will overload the Pi5 (software H.264 decode).
+
 FPS=12                           # output frame rate (lower = lighter on the Pi)
 # ======================
 
@@ -33,6 +45,22 @@ export XDG_RUNTIME_DIR=/run/user/$(id -u)
 GRID_COLS=3
 GRID_ROWS=2
 CELLS=$(( GRID_COLS * GRID_ROWS ))   # = 6
+
+# --- Build one RTSP URL for a given camera type ---
+build_url() {
+  local ctype="$1" cip="$2" cpass="$3"
+  case "$ctype" in
+    vigi)
+      echo "rtsp://${USER}:${cpass}@${cip}:554/${VIGI_STREAM}"
+      ;;
+    hamrol)
+      echo "rtsp://${cip}:554/user=${USER}&password=${cpass}&channel=1&stream=${HAMROL_STREAM}.sdp?real_stream"
+      ;;
+    *)
+      echo ""   # unknown type -> empty, caught below
+      ;;
+  esac
+}
 
 # --- Screen size of HDMI-A-1 (auto-read; falls back to 1920x1080) ---
 read SW SH < <(wlr-randr | awk '
@@ -53,13 +81,19 @@ pkill -f "mpv.*--really-quiet" 2>/dev/null
 pkill -f "ffmpeg.*xstack"      2>/dev/null
 sleep 1
 
-echo "Wall: $n camera(s) in a ${GRID_COLS}x${GRID_ROWS} grid, each tile ${CW}x${CH} (stream=$STREAM)"
+echo "Wall: $n camera(s) in a ${GRID_COLS}x${GRID_ROWS} grid, each tile ${CW}x${CH}"
 
 # --- Build ffmpeg inputs ---
 # Real cameras first (indices 0..n-1), then black fillers for empty cells.
 inputs=()
-for ip in "${CAMS[@]}"; do
-  inputs+=( -rtsp_transport tcp -i "rtsp://${USER}:${PASS}@${ip}:554/${STREAM}" )
+for entry in "${CAMS[@]}"; do
+  IFS='|' read -r ctype cip cpass <<< "$entry"
+  url="$(build_url "$ctype" "$cip" "$cpass")"
+  if [ -z "$url" ]; then
+    echo "WARN: unknown camera type in entry '$entry' — skipping." >&2
+    continue
+  fi
+  inputs+=( -rtsp_transport tcp -i "$url" )
 done
 for (( k=n; k<CELLS; k++ )); do
   inputs+=( -f lavfi -i "color=c=black:s=${CW}x${CH}:r=${FPS}" )
