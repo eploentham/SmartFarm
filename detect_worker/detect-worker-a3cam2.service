@@ -1,0 +1,16 @@
+[Unit]
+Description=Detect Worker DURIAN-A3 cam2 (192.168.0.241, Hamrol)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ekapop
+WorkingDirectory=/home/ekapop/smartfarm/scripts
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/ekapop/venv/yolo/bin/python /home/ekapop/smartfarm/scripts/detect_worker_zone3_cam2_v2.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

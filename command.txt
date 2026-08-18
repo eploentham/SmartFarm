@@ -157,5 +157,19 @@ for f in /etc/systemd/system/*.service; do
   printf "%-40s | %-11s | %-11s | %s\n" "$name" "$has_install" "$has_restart" "$enabled"
 done
 
+the CRLF issue again
 sed -i 's/\r$//' cctv_wall_v2.sh
 sudo chmod +x cctv_wall_v2.sh
+
+scp create_t_system_health.sql ekapop@100.97.182.35:/home/ekapop/smartfarm/sql/
+
+ถ้าคุณ scp/ssh เข้า PN64 บ่อย (ซึ่งน่าจะใช่) ตั้ง SSH config บน Windows ครั้งเดียว จะได้ไม่ต้องพิมพ์ IP ยาวๆ ทุกครั้ง สร้างไฟล์ C:\Users\<คุณ>\.ssh\config:
+
+Host pn64
+    HostName 100.97.182.35
+    User ekapop
+
+RTSP URL for VLC media Player : rtsp://$(IP):$(PORT)/user=$(USER)&password=$(PWD)&channel=$(Channel)&stream=$(Stream).sdp?real_stream Example : rtsp://10.6.10.25:554/user=admin&password=&channel=1&stream=0.sdp?real_stream
+Q : What’s the default ip address of the camera ?
+F : 192.168.1.10 Username : admin Password : null ( empty ) !
+ONVIF 2.0 Port 8899 ;RTSP Port 554 ;HTTP Port 80;Media Port 34567

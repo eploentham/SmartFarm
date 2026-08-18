@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-detect_worker_zone1_v2.py  (SNAPSHOT version — ffmpeg grabs one frame / 15s)
+detect_worker_zone3_cam1_v2.py  (SNAPSHOT version — ffmpeg grabs one frame / 15s)
 Worker (คนสวน) presence detector for ONE orchard CCTV camera.
 
-Versions:
-  * detect_worker_zone1_v1.py  (RTSP version)  — OpenCV holds an RTSP stream
-    open 24/7. Kept failing on this VIGI camera (bytestream errors -> endless
-    "reopen stream"). Kept as a fallback.
-  * detect_worker_zone1_v2.py  (SNAPSHOT version, THIS FILE) — ffmpeg grabs a
-    SINGLE frame each cycle, then YOLO runs on it. No live stream to stall,
-    no reopen loop. ffmpeg connects to this camera reliably (cctv_wall proves
-    it), so this is far more stable.
+Camera: Hamrol/XMEye @ 192.168.0.240, plot DURIAN-A3 (cam1).
 
 Flow every SAMPLE_INTERVAL_SEC:
   ffmpeg grab 1 frame -> YOLO detect person -> if found: log + snapshot.
 
-One script per camera. Copy -> detect_worker_zone2_v2.py, edit the CONFIG block.
+One script per camera. Copy -> detect_worker_zone3_cam2_v2.py, edit the CONFIG block.
 Secrets come from ~/smartfarm/.env (never hard-coded).
 """
 
@@ -48,39 +41,41 @@ def _env(*keys, default=None):
 # ======================================================================
 # CONFIG
 # ======================================================================
-CAMERA_CODE = "CAM-ORCHARD-01"      # <= 20 chars
-PLOT_ID     = "DURIAN-A1"           # must match m_plot.plot_code (or None)
+CAMERA_CODE = "CAM-A3-01"          # <= 20 chars, MUST be unique per camera
+PLOT_ID     = "DURIAN-A3"          # must match m_plot.plot_code (or None)
 
-# --- RTSP source (password RAW, not URL-encoded — VIGI rejects encoded) ---
-RTSP_USER = _env("RTSP_USER", default="admin")
-RTSP_PASS = _env("RTSP_PASSWORD", "RTSP_PASS", default="CHANGE_ME")
-RTSP_HOST = _env("RTSP_HOST", default="192.168.0.251")
-RTSP_PATH = _env("RTSP_PATH", default="stream2")     # sub=stream2, main=stream1
-RTSP_URL  = f"rtsp://{RTSP_USER}:{RTSP_PASS}@{RTSP_HOST}:554/{RTSP_PATH}"
+# --- Camera brand: "hamrol" or "vigi" (decides the RTSP URL format) ---
+CAM_TYPE    = "hamrol"
+
+# --- RTSP source ------------------------------------------------------
+RTSP_USER    = _env("RTSP_USER", default="admin")
+RTSP_PASS    = _env("RTSP_PASSWORD", "RTSP_PASS", default="CHANGE_ME")
+RTSP_HOST    = _env("RTSP_HOST_A3_01", "RTSP_HOST", default="192.168.0.240")
+RTSP_CHANNEL = 1                   # Hamrol: which NVR channel (IP-cam alone = 1)
+RTSP_STREAM  = 1                   # Hamrol: 1=main, 2=sub (this cam only has 640x480 for now)
+RTSP_PATH    = _env("RTSP_PATH", default="stream2")  # VIGI only: sub=stream2, main=stream1
 
 # --- YOLO model (OpenVINO on Intel iGPU) ---
-#MODEL_PATH     = "/home/ekapop/smartfarm/models/yolo11n_openvino_model"
-MODEL_PATH = "/home/ekapop/smartfarm/models/yolo26n_openvino_model"
-YOLO_DEVICE    = "intel:gpu"        # fallback: "cpu"
+# CCTV worker detection uses the generic COCO model (person = class 0).
+# NOTE: yolo26 is the CSI/custom model — do NOT point CCTV at it.
+MODEL_PATH     = "/home/ekapop/smartfarm/models/yolo11n_openvino_model"
+YOLO_DEVICE    = "intel:gpu"       # fallback: "cpu"
 IMG_SIZE       = 320
-PERSON_CLASS   = 0                  # COCO class 0 = person
+PERSON_CLASS   = 0                 # COCO class 0 = person
 CONF_THRESHOLD = 0.45
 
 # --- Sampling ---
-SAMPLE_INTERVAL_SEC = 15            # grab one frame every N seconds
-GRAB_TIMEOUT_SEC    = 20            # subprocess-level hard kill (safety net)
-FFMPEG_TIMEOUT_US   = 10_000_000    # ffmpeg socket I/O timeout: 10s in microsec
-                                    # (lets ffmpeg give up on its own before the
-                                    #  subprocess safety-net has to kill it)
+SAMPLE_INTERVAL_SEC = 15           # grab one frame every N seconds
+GRAB_TIMEOUT_SEC    = 20           # subprocess-level hard kill (safety net)
+FFMPEG_TIMEOUT_US   = 10_000_000   # ffmpeg socket I/O timeout: 10s in microsec
 FRAME_TMP           = f"/tmp/worker_{CAMERA_CODE}.jpg"   # ffmpeg writes here
 
-# --- Self-heal: if the camera stays unreachable, EXIT so systemd restarts us.
-#     Turns a silent hang into a loud crash that Restart=always can recover.
+# --- Self-heal: if the camera stays unreachable, EXIT so systemd restarts us. ---
 MAX_CONSECUTIVE_FAILS = 20         # ~20 failed grabs in a row -> exit(1)
 
 # --- Active hours ---
 ACTIVE_START = dtime(8, 0)         # 08:00
-ACTIVE_END   = dtime(19, 0)        # 17:00
+ACTIVE_END   = dtime(19, 0)        # 19:00  (widened from 17:00: catch late-afternoon spraying)
 
 # --- Snapshots (throttled) ---
 SNAPSHOT_DIR          = "/home/ekapop/smartfarm/snapshots/worker"
@@ -116,8 +111,20 @@ signal.signal(signal.SIGINT, _stop)
 # ======================================================================
 # Helpers
 # ======================================================================
+def build_rtsp_url() -> str:
+    """Build the RTSP URL for this camera's brand (VIGI vs Hamrol differ)."""
+    if CAM_TYPE == "hamrol":
+        # Hamrol/XMEye: raw password in the URL (alphanumeric works best).
+        return (f"rtsp://{RTSP_HOST}:554/"
+                f"user={RTSP_USER}&password={RTSP_PASS}"
+                f"&channel={RTSP_CHANNEL}&stream={RTSP_STREAM}.sdp?real_stream")
+    # VIGI (default): user:pass@host, raw password (no URL-encoding).
+    return f"rtsp://{RTSP_USER}:{RTSP_PASS}@{RTSP_HOST}:554/{RTSP_PATH}"
+
+
 def within_active_hours(now: datetime) -> bool:
     return ACTIVE_START <= now.time() <= ACTIVE_END
+
 
 def grab_frame(dst: str) -> bool:
     """
@@ -125,11 +132,9 @@ def grab_frame(dst: str) -> bool:
     Returns True on success.
 
     Two independent timeouts guard against the "camera dropped off the LAN"
-    hang (No route to host) that previously froze the whole loop:
-      1) -timeout / -stimeout at the FFMPEG level: ffmpeg aborts its own
-         socket wait after FFMPEG_TIMEOUT_US, so it usually exits cleanly.
-      2) subprocess GRAB_TIMEOUT_SEC as a hard safety net: if ffmpeg still
-         hasn't exited, we KILL it and reap it (wait) so no zombie lingers.
+    hang that previously froze the whole loop:
+      1) -timeout at the FFMPEG level: ffmpeg aborts its own socket wait.
+      2) subprocess GRAB_TIMEOUT_SEC as a hard safety net: kill + reap.
     """
     # remove any stale frame so we never re-detect on an old grab
     try:
@@ -138,14 +143,14 @@ def grab_frame(dst: str) -> bool:
     except OSError:
         pass
 
+    rtsp_url = build_rtsp_url()
     cmd = [
         "ffmpeg", "-nostdin", "-y",
         "-rtsp_transport", "tcp",
-        # ffmpeg-level socket I/O timeout (microseconds). '-timeout' is the
-        # widely-supported option for rtsp; ffmpeg aborts instead of hanging.
         "-timeout", str(FFMPEG_TIMEOUT_US),
-        "-i", RTSP_URL,
+        "-i", rtsp_url,
         "-frames:v", "1",          # one frame only
+        "-update", "1",            # single output file on purpose (silences image2 warning)
         "-q:v", "3",               # good JPEG quality
         "-an",                     # no audio
         "-loglevel", "error",
@@ -157,7 +162,6 @@ def grab_frame(dst: str) -> bool:
     try:
         _, stderr = proc.communicate(timeout=GRAB_TIMEOUT_SEC)
     except subprocess.TimeoutExpired:
-        # ffmpeg ignored its own timeout — force it down and reap it.
         proc.kill()
         try:
             proc.communicate(timeout=5)   # reap so it can't become a zombie
@@ -171,6 +175,7 @@ def grab_frame(dst: str) -> bool:
         return False
     return os.path.exists(dst) and os.path.getsize(dst) > 0
 
+
 def save_snapshot(src: str, when: datetime) -> str | None:
     """Copy the grabbed frame into a dated folder; return its path."""
     try:
@@ -182,6 +187,7 @@ def save_snapshot(src: str, when: datetime) -> str | None:
     except Exception as e:
         log.warning("Snapshot save failed: %s", e)
         return None
+
 
 class DB:
     """MariaDB wrapper with lazy reconnect."""
@@ -215,6 +221,7 @@ class DB:
                 self.conn = None
         log.error("Giving up on this detection row (DB unreachable).")
 
+
 # ======================================================================
 # Main
 # ======================================================================
@@ -231,15 +238,14 @@ def main():
     consecutive_fails = 0          # heartbeat: counts grabs that failed in a row
 
     log.info("Loaded .env from %s", ENV_PATH)
-    log.info("Worker detector (snapshot mode) started | camera=%s plot=%s",
-             CAMERA_CODE, PLOT_ID)
+    log.info("Worker detector (snapshot mode) started | camera=%s plot=%s type=%s",
+             CAMERA_CODE, PLOT_ID, CAM_TYPE)
 
     while _running:
         loop_start = time.time()
         now = datetime.now()
 
-        # 1) Sleep outside working hours. (Reset the fail counter too — a camera
-        #    being unreachable overnight is expected, not a fault to restart on.)
+        # 1) Sleep outside working hours (reset fail counter — night is expected).
         if not within_active_hours(now):
             consecutive_fails = 0
             time.sleep(60)
@@ -250,17 +256,13 @@ def main():
             consecutive_fails += 1
             log.warning("grab failed (%d/%d in a row).",
                         consecutive_fails, MAX_CONSECUTIVE_FAILS)
-            # If the camera has been unreachable for many cycles, don't sit here
-            # silently forever — exit LOUD so systemd Restart=always revives us
-            # with a fresh process (clears any stuck ffmpeg/socket state).
             if consecutive_fails >= MAX_CONSECUTIVE_FAILS:
                 log.error("Camera unreachable for %d cycles -> exiting for "
                           "systemd restart.", consecutive_fails)
                 sys.exit(1)
-            _sleep_remainder(loop_start)   # skip this cycle, try again next
+            _sleep_remainder(loop_start)
             continue
 
-        # a successful grab clears the failure streak
         consecutive_fails = 0
 
         # 3) Run person detection on the grabbed frame.
@@ -300,11 +302,13 @@ def main():
 
     log.info("Detector stopped.")
 
+
 def _sleep_remainder(loop_start: float):
     """Hold a steady SAMPLE_INTERVAL_SEC cadence."""
     remaining = SAMPLE_INTERVAL_SEC - (time.time() - loop_start)
     if remaining > 0:
         time.sleep(remaining)
+
 
 if __name__ == "__main__":
     main()

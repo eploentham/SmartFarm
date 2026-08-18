@@ -32,8 +32,8 @@ HAMROL_STREAM="1"
 CAMS=(
   "vigi|192.168.0.251|$VIGI_PASS"
   "vigi|192.168.0.252|$VIGI_PASS"
-  "hamrol|192.168.0.240|CHANGEME_alnum"   # <-- Hamrol 8MP: set the ALPHANUMERIC pw here
-  "hamrol|192.168.0.241|CHANGEME_alnum" # <-- second Hamrol, uncomment when installed
+  "hamrol|192.168.0.241|CHANGEME_alnum"   # <-- Hamrol 8MP: set the ALPHANUMERIC pw here
+  "hamrol|192.168.0.240|CHANGEME_alnum" # <-- second Hamrol, uncomment when installed
 )
 
 FPS=12                           # output frame rate (lower = lighter on the Pi)
@@ -62,6 +62,17 @@ build_url() {
   esac
 }
 
+# --- Quick liveness check for one camera (fault tolerance) ---
+# Returns 0 (alive) if ffprobe can open the RTSP stream within the time budget,
+# else non-zero. The shell `timeout` HARD-kills ffprobe after PROBE_SECS no
+# matter what, so a dead/offline camera can never hang the wall at startup.
+PROBE_SECS=6
+probe_cam() {
+  local url="$1"
+  timeout "${PROBE_SECS}" ffprobe -rtsp_transport tcp -loglevel quiet \
+    -i "$url" >/dev/null 2>&1
+}
+
 # --- Screen size of HDMI-A-1 (auto-read; falls back to 1920x1080) ---
 read SW SH < <(wlr-randr | awk '
   /^[^ \t]/ { inblk = ($1=="HDMI-A-1") }
@@ -83,21 +94,40 @@ sleep 1
 
 echo "Wall: $n camera(s) in a ${GRID_COLS}x${GRID_ROWS} grid, each tile ${CW}x${CH}"
 
-# --- Build ffmpeg inputs ---
-# Real cameras first (indices 0..n-1), then black fillers for empty cells.
+# --- Build ffmpeg inputs (FAULT TOLERANT) ---
+# Each camera keeps its OWN fixed cell (stable positions). A camera that is
+# offline / broken / unknown-type becomes a BLACK tile instead of killing the
+# whole wall. If a live camera dies mid-stream, ffmpeg errors out, the restart
+# loop re-probes, and that camera then becomes a black tile automatically.
+BLACK_TILE=( -f lavfi -i "color=c=black:s=${CW}x${CH}:r=${FPS}" )
+live=0
 inputs=()
 for entry in "${CAMS[@]}"; do
   IFS='|' read -r ctype cip cpass <<< "$entry"
   url="$(build_url "$ctype" "$cip" "$cpass")"
   if [ -z "$url" ]; then
-    echo "WARN: unknown camera type in entry '$entry' — skipping." >&2
-    continue
+    echo "WARN: unknown camera type in '$entry' -> black tile" >&2
+    inputs+=( "${BLACK_TILE[@]}" )
+  elif probe_cam "$url"; then
+    echo "OK  : ${cip} live"
+    inputs+=( -rtsp_transport tcp -i "$url" )
+    live=$(( live + 1 ))
+  else
+    echo "DOWN: ${cip} not responding -> black tile"
+    inputs+=( "${BLACK_TILE[@]}" )
   fi
-  inputs+=( -rtsp_transport tcp -i "$url" )
 done
-for (( k=n; k<CELLS; k++ )); do
-  inputs+=( -f lavfi -i "color=c=black:s=${CW}x${CH}:r=${FPS}" )
+# Pad any remaining empty cells with black.
+for (( k=${#CAMS[@]}; k<CELLS; k++ )); do
+  inputs+=( "${BLACK_TILE[@]}" )
 done
+
+echo "Live cameras: ${live}/${#CAMS[@]}"
+if [ "$live" -eq 0 ]; then
+  echo "No cameras are reachable right now — retrying in 15s ..."
+  sleep 15
+  exec "$0"   # restart from scratch; a camera may have come back
+fi
 
 # --- Build the filter graph ---
 # 1) scale each of the 6 inputs to one tile size, fix SAR (xstack needs equal SAR)
