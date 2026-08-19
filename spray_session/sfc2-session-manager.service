@@ -1,0 +1,19 @@
+[Unit]
+Description=SFC2 spray session manager (state machine + DB) / สมองกลางรอบพ่นยา
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+# secrets ไม่ hardcode — เก็บใน /etc/sfc2/db.env :
+#   SMARTFARM_DB_PASSWORD=...
+#   (option) SMARTFARM_DB_HOST=127.0.0.1  SPRAY_WORKER_ID=2  SPRAY_TIMEOUT_MIN=30
+EnvironmentFile=/etc/sfc2/db.env
+WorkingDirectory=/home/ekapop/smartfarm/scripts
+ExecStart=/home/ekapop/venv/yolo/bin/python /home/ekapop/smartfarm/scripts/session_manager.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

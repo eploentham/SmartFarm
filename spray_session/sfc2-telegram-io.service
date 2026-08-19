@@ -1,0 +1,18 @@
+[Unit]
+Description=SFC2 Telegram I/O adapter (getUpdates <-> MQTT) / poller เดียวของระบบ
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+# ⚠️ ใส่ token จริงตรงนี้ (ไฟล์ .service เก็บใน /etc/systemd/system อ่านได้เฉพาะ root)
+#    หรือใช้ EnvironmentFile=/etc/sfc2/telegram.env แทน (กัน token โผล่ใน git)
+Environment=TELEGRAM_BOT_TOKEN=REPLACE_WITH_BOT_TOKEN
+WorkingDirectory=/home/ekapop/smartfarm/scripts
+ExecStart=/home/ekapop/venv/yolo/bin/python /home/ekapop/smartfarm/scripts/telegram_io.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

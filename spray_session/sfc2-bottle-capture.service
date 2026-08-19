@@ -1,0 +1,21 @@
+[Unit]
+Description=SFC2 bottle capture + OCR (Pi5 CSI camera) / ถ่ายขวด+อ่านฉลาก
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+# MOCK=1 = คืน fixed text ไม่แตะกล้อง/Gemini (ทดสอบ flow กลางคืน)
+# ตอนเปิดจริงกลางวัน: ตั้ง BOTTLE_MOCK=0 + ใส่ GEMINI_API_KEY (EnvironmentFile) + tv_display.py ต้องรัน
+Environment=BOTTLE_MOCK=1
+# EnvironmentFile=/etc/sfc2/gemini.env   # GEMINI_API_KEY=... (เปิดตอน real)
+# ⚠️ ต้องรันในโฟลเดอร์ detectbottle/ ให้ import gemini_extract/config ได้ (real mode)
+WorkingDirectory=/home/ekapop/smartfarm/detectbottle
+# ⚠️ แก้ path python ให้เป็น venv บน Pi5 ที่มี paho (+ google-generativeai ตอน real)
+ExecStart=/home/ekapop/detect/venv/bin/python /home/ekapop/smartfarm/detectbottle/bottle_capture.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
