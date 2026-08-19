@@ -137,8 +137,9 @@ rpicam-jpeg --camera 1 -o /tmp/cam1.jpg -t 1000
 systemctl is-active detect_spray.service
 
 sudo systemd-analyze verify smartfarm-mqtt-receiver.service
-
-
+sudo systemctl restart smartfarm-mqtt-receiver.service
+# ดู service ทั้งหมดที่ขึ้นต้น smartfarm
+systemctl list-units --type=service | grep smartfarm
 
 Restart=on-failure
 RestartSec=10
