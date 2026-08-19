@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
-# bottle_capture.py — รันบน Pi5 (pi5camera01)
+# bottle_capture.py — เจ้าของการ "อ่านฉลากขวด" 1 ใบต่อ 1 คำขอ
 # ---------------------------------------------------------------------------
-# Part 4: เจ้าของการถ่ายขวด/ซองสารเคมี 1 ใบต่อ 1 คำขอ
-#
+# Part 4:
 #   subscribe sfc2/capture/request  {session_id}
-#     → ถ่าย 1 ใบ → OCR (Gemini) → publish sfc2/capture/result
+#     → หยิบภาพขวด → OCR (Gemini) → publish sfc2/capture/result
 #                                     {session_id, image_path, data, ok}
 #
-# ⚠️ 1 process = 1 เจ้าของกล้อง (CSI เปิดซ้อน = device busy)
-#    real mode reuse pattern ของ capture_and_read.py: tv_display.py เป็นเจ้าของ
-#    กล้อง+จอ TV เราขอถ่ายผ่าน HTTP POST /capture (ไม่เปิดกล้องเอง)
+# ที่มาของ "ภาพขวด" มี 2 โหมด (เลือกด้วย env):
 #
-# MOCK MODE (ค่าเริ่มต้นตอนนี้): ข้ามกล้อง+Gemini คืน "fixed text" ไปก่อน
-#    → ทดสอบ flow เต็มได้กลางคืน/ที่มืด แล้วค่อยเปิด real ตอนกลางวัน
-#      ตั้ง env BOTTLE_MOCK=0 เพื่อใช้กล้อง+Gemini จริง
+#   MOCK MODE      BOTTLE_MOCK=1 (ค่าเริ่มต้น)
+#     ข้ามภาพ+Gemini คืน "fixed text" ไปก่อน — เทส flow เต็มได้ทุกเวลา
+#
+#   REAL MODE      BOTTLE_MOCK=0
+#     MQTT FRAME BRIDGE: subscribe เฟรม JPEG จาก topic กล้อง (BOTTLE_FRAME_TOPIC)
+#     เก็บเฟรม "ล่าสุด" ไว้ใน RAM. พอมี capture/request → เอาเฟรมล่าสุดไป Gemini จริง.
+#     → เทส Gemini path ได้แม้กลางคืน: publish รูปขวดเข้า topic ด้วย send_bottle.py
+#       (ภายหลังจะสลับให้ pi5camera publish เฟรมสดเข้า topic เดียวกันได้เลย)
+#
+# ⚠️ REAL MODE ต้องมี env GEMINI_API_KEY + import config/gemini_extract ได้
+#    (รันจากโฟลเดอร์ detectbottle หรือ PYTHONPATH ชี้ไปที่นั่น)
 # ---------------------------------------------------------------------------
 
 import json
 import os
+import threading
 import time
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 
@@ -31,10 +38,17 @@ T_RESULT  = "sfc2/capture/result"    # publish: ผล OCR
 
 MOCK = os.environ.get("BOTTLE_MOCK", "1") == "1"   # 1 = mock (ค่าเริ่มต้น)
 
-# real mode เท่านั้น
-TV_URL       = os.environ.get("TV_URL", "http://localhost:5000")   # tv_display.py
-CAPTURE_DIR  = os.path.expanduser("~/smartfarm/detectbottle/captures")
+# real mode: topic เฟรมกล้องขวด (แยกจาก smartfarm/cam1/frame ที่เป็น worker view)
+BOTTLE_FRAME_TOPIC = os.environ.get("BOTTLE_FRAME_TOPIC", "smartfarm/bottlecam/frame")
+CAPTURE_DIR  = os.path.expanduser(
+    os.environ.get("CAPTURE_DIR", "~/smartfarm/detectbottle/captures"))
+FRAME_MAX_AGE = int(os.environ.get("BOTTLE_FRAME_MAX_AGE", "300"))  # วิ; เฟรมเก่ากว่านี้ = ไม่รับ
 # ----------------------------
+
+# เฟรม JPEG ล่าสุดที่รับจาก topic กล้อง (real mode) — paho เรียก callback ทีละอัน
+# แต่กัน race กับ publisher thread ด้วย lock เบาๆ
+_frame_lock = threading.Lock()
+_latest = {"bytes": None, "ts": 0.0}
 
 # ---- ข้อมูล mock: ขวดจริงที่พี่เอกถ่ายมาทดสอบ (โมคารอล / kasugamycin) + สลับให้หลากหลาย ----
 _MOCK_BOTTLES = [
@@ -88,41 +102,91 @@ def mock_capture(session_id):
             "data": data, "ok": True}
 
 
-def real_capture(session_id):
-    """ถ่ายจริงผ่าน tv_display (/capture) → blur gate → Gemini OCR.
-    reuse pattern capture_and_read.py — ต้องมี tv_display.py รัน + กลางวัน."""
-    import urllib.request
-    from gemini_extract import extract_label   # import ตอนใช้จริง (ต้องมี key)
-
-    # 1) ขอ tv_display ถ่าย high-res still (เจ้าของกล้อง)
+def _blur_variance(jpg_bytes):
+    """Laplacian variance ของภาพ (ยิ่งต่ำ = ยิ่งเบลอ). คืน None ถ้าไม่มี cv2."""
     try:
-        req = urllib.request.Request(f"{TV_URL}/capture", method="POST")
-        with urllib.request.urlopen(req, timeout=30) as r:
-            cap = json.load(r)
-    except Exception as e:
-        print(f"[real] เรียก tv_display /capture ไม่ได้: {e}")
-        return {"session_id": session_id, "image_path": None,
-                "data": None, "ok": False}
+        import cv2
+        import numpy as np
+    except ImportError:
+        return None
+    arr = np.frombuffer(jpg_bytes, np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return None
+    return float(cv2.Laplacian(img, cv2.CV_64F).var())
 
-    if not cap.get("ok"):
-        return {"session_id": session_id, "image_path": cap.get("path"),
-                "data": None, "ok": False}
-    path = cap["path"]
+
+def real_capture(session_id):
+    """เอาเฟรมล่าสุดจาก MQTT (BOTTLE_FRAME_TOPIC) → blur gate → Gemini OCR.
+    ไม่เปิดกล้องเอง — ใครก็ได้ publish JPEG เข้า topic (send_bottle.py / pi5camera)."""
+    from gemini_extract import extract_label   # import ตอนใช้จริง (ต้องมี key)
+    try:
+        from config import BLUR_THRESHOLD
+    except Exception:
+        BLUR_THRESHOLD = 100.0
+
+    # 1) หยิบเฟรมล่าสุด
+    with _frame_lock:
+        jpg = _latest["bytes"]
+        age = time.time() - _latest["ts"] if _latest["ts"] else None
+    if not jpg:
+        print(f"[real] ยังไม่ได้รับภาพจาก {BOTTLE_FRAME_TOPIC} — ให้กล้องส่งภาพก่อน")
+        return {"session_id": session_id, "image_path": None,
+                "data": None, "ok": False,
+                "error": "no_frame"}
+    if age is not None and age > FRAME_MAX_AGE:
+        print(f"[real] เฟรมเก่าเกินไป ({age:.0f}s > {FRAME_MAX_AGE}s) — ให้ถ่ายใหม่")
+        return {"session_id": session_id, "image_path": None,
+                "data": None, "ok": False, "error": "stale_frame"}
+
+    # 2) เซฟลงดิสก์ (evidence)
+    os.makedirs(CAPTURE_DIR, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = os.path.join(CAPTURE_DIR, f"bottle_{session_id}_{ts}.jpg")
+    with open(path, "wb") as f:
+        f.write(jpg)
 
     # GATE 1 — เบลอ (local ฟรี) อย่าเปลือง Gemini call
-    if cap.get("blurry"):
-        print("[real] ภาพเบลอ — ให้ถ่ายใหม่")
+    var = _blur_variance(jpg)
+    if var is not None and var < BLUR_THRESHOLD:
+        print(f"[real] ภาพเบลอ (var={var:.0f} < {BLUR_THRESHOLD}) — ให้ถ่ายใหม่")
         return {"session_id": session_id, "image_path": path,
-                "data": None, "ok": False}
+                "data": None, "ok": False, "error": "blurry"}
 
-    # 2) Gemini OCR
+    # 3) Gemini OCR
+    print(f"[real] session {session_id}: ส่ง {path} เข้า Gemini "
+          f"(var={var if var is not None else 'n/a'})…")
     ext = extract_label(path)
     if not ext["ok"]:
         print(f"[real] Gemini ล้มเหลว: {ext['error']}")
         return {"session_id": session_id, "image_path": path,
-                "data": None, "ok": False}
+                "data": None, "ok": False, "error": ext["error"]}
+
+    # กันไว้: real Gemini อาจไม่คืน application_category / active_ingredients ครบ
+    data = dict(ext["data"] or {})
+    data.setdefault("application_category", "chemical")
+    data.setdefault("active_ingredients", [])
+
+    # GATE 2 — readability: ภาพชัดแต่ไม่เห็นขวด/ฉลาก → ให้ถ่ายใหม่ (อย่าบันทึกขวดเปล่า)
+    if not _readable(data):
+        print("[real] ไม่เห็นขวด/อ่านฉลากไม่ได้ — ให้ถ่ายใหม่")
+        return {"session_id": session_id, "image_path": path,
+                "data": None, "ok": False, "error": "no_label"}
+
+    print(f"[real] อ่านได้: {data.get('brand_name')} "
+          f"({data.get('application_category')})")
     return {"session_id": session_id, "image_path": path,
-            "data": ext["data"], "ok": True}
+            "data": data, "ok": True}
+
+
+def _readable(data):
+    """True ถ้า Gemini เจอขวด/ฉลากจริง (ไม่ใช่เฟรมเปล่า/เสื้อคนงาน).
+    reuse logic จาก capture_and_read._readable."""
+    ings = data.get("active_ingredients") or []
+    has_ingredient = bool(ings and ings[0].get("name"))
+    has_brand = bool(data.get("brand_name"))
+    conf = data.get("confidence") or 0
+    return has_ingredient or (has_brand and conf >= 0.4)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -130,11 +194,23 @@ def on_connect(client, userdata, flags, rc):
         mode = "MOCK" if MOCK else "REAL"
         print(f"เชื่อม MQTT สำเร็จ (mode={mode})")
         client.subscribe(T_REQUEST)
+        if not MOCK:
+            client.subscribe(BOTTLE_FRAME_TOPIC)
+            print(f"  subscribe เฟรมกล้อง: {BOTTLE_FRAME_TOPIC}")
     else:
         print(f"เชื่อม MQTT ไม่สำเร็จ rc={rc}")
 
 
 def on_message(client, userdata, msg):
+    # --- เฟรมกล้อง (real mode): payload = JPEG bytes ดิบ ไม่ใช่ JSON ---
+    if msg.topic == BOTTLE_FRAME_TOPIC:
+        with _frame_lock:
+            _latest["bytes"] = msg.payload
+            _latest["ts"] = time.time()
+        print(f"[frame] รับเฟรมล่าสุด {len(msg.payload):,} bytes")
+        return
+
+    # --- คำขอถ่าย (JSON) ---
     try:
         req = json.loads(msg.payload.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as e:

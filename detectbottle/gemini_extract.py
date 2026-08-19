@@ -43,6 +43,7 @@ markdown, no code fences, no explanation.
   "batch_number": string | null,           // รุ่นการผลิต / batch / lot
   "expiry_date": string | null,            // ISO "YYYY-MM-DD" if readable
   "chemical_category": string,             // "insecticide" | "fungicide" | "herbicide" | "other" | "unknown"
+  "application_category": string,          // "chemical" | "biological" | "fertilizer"
   "confidence": number                     // 0.0-1.0, your confidence in this extraction
 }
 
@@ -51,6 +52,9 @@ Rules:
 - Prefer the ACTIVE INGREDIENT even if the brand name is unclear.
 - expiry_date: convert Thai Buddhist year (พ.ศ.) to Gregorian (ค.ศ.) by
   subtracting 543 before formatting.
+- application_category: choose "biological" for microbial/antibiotic agents
+  (e.g. kasugamycin, Bacillus, Trichoderma, สารชีวภัณฑ์), "fertilizer" for
+  ปุ๋ย/plant nutrients, otherwise "chemical". Default to "chemical" if unsure.
 """
 
 

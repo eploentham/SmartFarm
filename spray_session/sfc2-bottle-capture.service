@@ -6,9 +6,12 @@ Wants=network-online.target
 [Service]
 Type=simple
 Environment=PYTHONUNBUFFERED=1
-# MOCK=1 = คืน fixed text ไม่แตะกล้อง/Gemini (ทดสอบ flow กลางคืน)
-# ตอนเปิดจริงกลางวัน: ตั้ง BOTTLE_MOCK=0 + ใส่ GEMINI_API_KEY (EnvironmentFile) + tv_display.py ต้องรัน
+# MOCK=1 = คืน fixed text ไม่แตะภาพ/Gemini (ทดสอบ flow ได้ทุกเวลา)
+# REAL (BOTTLE_MOCK=0): MQTT frame bridge — subscribe เฟรม JPEG จาก BOTTLE_FRAME_TOPIC
+#   เก็บเฟรมล่าสุด → พอมี capture/request → Gemini จริง (ต้องมี GEMINI_API_KEY)
+#   ไม่ต้องพึ่ง tv_display แล้ว. ใครก็ได้ publish เฟรมเข้า topic (send_bottle.py / pi5camera)
 Environment=BOTTLE_MOCK=1
+Environment=BOTTLE_FRAME_TOPIC=smartfarm/bottlecam/frame
 # EnvironmentFile=/etc/sfc2/gemini.env   # GEMINI_API_KEY=... (เปิดตอน real)
 # ⚠️ ต้องรันในโฟลเดอร์ detectbottle/ ให้ import gemini_extract/config ได้ (real mode)
 WorkingDirectory=/home/ekapop/smartfarm/detectbottle
