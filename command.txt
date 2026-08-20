@@ -174,3 +174,38 @@ RTSP URL for VLC media Player : rtsp://$(IP):$(PORT)/user=$(USER)&password=$(PWD
 Q : What’s the default ip address of the camera ?
 F : 192.168.1.10 Username : admin Password : null ( empty ) !
 ONVIF 2.0 Port 8899 ;RTSP Port 554 ;HTTP Port 80;Media Port 34567
+
+TFmini FRONT
+I2C Address = 0x10
+Orientation = FRONT
+1. เปลี่ยน UART → I2C
+Custom Command ใส่:
+5A 05 0A 01 6A
+แล้วกด SEND
+Save Setting
+5A 04 11 6F
+จากนั้น รอ 5 วินาที ก่อนถอด USB
+UART 115200
+    ↓
+5A 05 0A 01 6A
+    ↓
+I2C mode
+Address 0x10 (default)
+    ↓
+5A 04 11 6F
+    ↓
+SAVE
+    ↓
+รอ 5 วินาที
+    ↓
+ถอด USB
+
+I2C Address = 0x10
+Orientation = UP
+Custom Command ใส่:
+5A 05 0B 11 7B
+แล้วกด SEND
+5A 05 0A 01 6A
+แล้วกด SEND
+Save Setting
+5A 04 11 6F
