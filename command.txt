@@ -209,3 +209,11 @@ Custom Command ใส่:
 แล้วกด SEND
 Save Setting
 5A 04 11 6F
+
+
+scp -r ekapop@pi5camera:~/smartfarm/datasets/sprayer_raw/20260819 f:\source\datasets
+rsync -avh --progress user@pi:/path/source/ /path/destination/
+
+
+°   องศา
+
