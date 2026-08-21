@@ -214,6 +214,7 @@ Save Setting
 scp -r ekapop@pi5camera:~/smartfarm/datasets/sprayer_raw/20260819 f:\source\datasets
 rsync -avh --progress user@pi:/path/source/ /path/destination/
 
+rsync -avh --info=progress2   ekapop@pi5camera01:~/smartfarm/datasets/sprayer_raw/20260821/   /mnt/f/source/datasets/20260821/
 
 °   องศา
 
